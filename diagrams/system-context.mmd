@@ -1,0 +1,12 @@
+flowchart LR
+    S[Salesperson] --> CRM[CRM Sales Workspace]
+    C[Calon client] --> WEB[Booking page / Webinar]
+    WEB --> CRM
+    CRM --> V[Voucher Module]
+    CRM --> O[Opportunity & Order Orchestration]
+    O --> P[Existing Billing / Payment]
+    O --> PLAT[Education Platform]
+    P --> O
+    PLAT --> O
+    O --> CRM
+    CRM --> R[Reporting & Commission]

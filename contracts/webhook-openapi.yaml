@@ -1,0 +1,133 @@
+openapi: 3.0.3
+info:
+  title: CRM Integration Webhooks
+  version: 1.0.0
+  description: Initial contract for signed events from platform and billing.
+servers:
+  - url: https://crm.example.internal
+paths:
+  /v1/webhooks/platform:
+    post:
+      summary: Receive events from education platform
+      operationId: receivePlatformEvent
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/EventType'
+        - $ref: '#/components/parameters/EventVersion'
+        - $ref: '#/components/parameters/Signature'
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventEnvelope'
+      responses:
+        '202':
+          description: Accepted and queued
+        '400':
+          description: Invalid envelope
+        '401':
+          description: Invalid signature
+        '409':
+          description: Duplicate event already accepted
+  /v1/webhooks/billing:
+    post:
+      summary: Receive events from billing/payment system
+      operationId: receiveBillingEvent
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/EventType'
+        - $ref: '#/components/parameters/EventVersion'
+        - $ref: '#/components/parameters/Signature'
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventEnvelope'
+      responses:
+        '202':
+          description: Accepted and queued
+        '400':
+          description: Invalid envelope
+        '401':
+          description: Invalid signature
+        '409':
+          description: Duplicate event already accepted
+components:
+  parameters:
+    EventId:
+      name: X-Event-Id
+      in: header
+      required: true
+      schema:
+        type: string
+    EventType:
+      name: X-Event-Type
+      in: header
+      required: true
+      schema:
+        type: string
+    EventVersion:
+      name: X-Event-Version
+      in: header
+      required: true
+      schema:
+        type: integer
+        format: int32
+    Signature:
+      name: X-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      schema:
+        type: string
+  schemas:
+    EventEnvelope:
+      type: object
+      required:
+        - event_id
+        - event_type
+        - event_version
+        - occurred_at
+        - producer
+        - correlation_id
+        - subject
+        - data
+      properties:
+        event_id:
+          type: string
+        event_type:
+          type: string
+        event_version:
+          type: integer
+        occurred_at:
+          type: string
+          format: date-time
+        producer:
+          type: string
+        correlation_id:
+          type: string
+        causation_id:
+          type: string
+        subject:
+          type: object
+          required: [type, id]
+          properties:
+            type:
+              type: string
+            id:
+              type: string
+        data:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true

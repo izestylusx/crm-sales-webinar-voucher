@@ -1,0 +1,27 @@
+{
+  "event_id": "evt_01JCRM0001",
+  "event_type": "payment.paid",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T10:00:00Z",
+  "producer": "billing-service",
+  "correlation_id": "cor_01JCRM0001",
+  "causation_id": "cmd_01JCRM0001",
+  "subject": {
+    "type": "order",
+    "id": "ord_123"
+  },
+  "data": {
+    "order_id": "ord_123",
+    "invoice_id": "inv_123",
+    "payment_id": "pay_123",
+    "amount": 8000000,
+    "currency": "IDR",
+    "status": "paid",
+    "voucher_id": "vch_123",
+    "salesperson_id": "sp_123"
+  },
+  "metadata": {
+    "environment": "staging",
+    "trace_id": "trace_123"
+  }
+}

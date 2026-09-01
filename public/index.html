@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#17213b" />
+    <title>CRM Architecture Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand-lockup">
+          <div class="brand-mark">C</div>
+          <div>
+            <div class="brand-name">CRM workspace</div>
+            <div class="brand-meta">Architecture desk · v0.1</div>
+          </div>
+        </div>
+        <div class="sidebar-label">Workspace</div>
+        <nav id="doc-nav" aria-label="Document navigation"></nav>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-label">References</div>
+        <div id="download-nav" class="download-nav"></div>
+        <div class="sidebar-bottom">
+          <span class="status-dot"></span>
+          <span>Shared review space</span>
+        </div>
+      </aside>
+
+      <main class="main-shell">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="menu-button" aria-label="Open navigation">☰</button>
+          <div class="crumb" id="crumb">Workspace / Overview</div>
+          <div class="topbar-actions">
+            <label class="search-box" aria-label="Search documents">
+              <span>⌕</span>
+              <input id="search-input" type="search" placeholder="Search docs, decisions, API..." />
+              <kbd>⌘ K</kbd>
+            </label>
+            <button class="token-button" id="token-button">Edit access</button>
+          </div>
+        </header>
+
+        <div class="content-wrap">
+          <section id="page" class="page" aria-live="polite"></section>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+  </body>
+</html>
