@@ -35,3 +35,11 @@ Versi ringkas untuk dibagikan lintas fungsi tersedia pada `CRM-Architecture-Visi
 ## Status
 
 Dokumen ini adalah baseline rancangan MVP dan bahan alignment lintas tim. Nilai bisnis seperti harga paket, durasi voucher, aturan komisi, dan provider webinar masih berupa konfigurasi/keputusan yang perlu dikunci.
+
+## Portal publik
+
+Portal review tim: [https://izestylusx.github.io/crm-sales-webinar-voucher/](https://izestylusx.github.io/crm-sales-webinar-voucher/)
+
+Source repository: [https://github.com/izestylusx/crm-sales-webinar-voucher](https://github.com/izestylusx/crm-sales-webinar-voucher)
+
+Reviewer dapat membuka dokumen dari portal, lalu memakai panel `Team notes` untuk membuat thread feedback GitHub tanpa download/upload.
