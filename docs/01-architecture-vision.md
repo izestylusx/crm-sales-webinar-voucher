@@ -36,13 +36,15 @@ flowchart LR
 
 ## Evolusi deployment
 
-Untuk platform yang sudah besar, target domain boleh dipisahkan secara kode dan database sejak awal, tetapi deployment awal dapat berupa modular monolith CRM agar tim tidak dibebani operasi microservices. Boundary harus tetap API-first sehingga Voucher atau Integration Service dapat diekstrak nanti.
+Backend CRM menggunakan Go. Untuk platform yang sudah besar, domain CRM dipisahkan secara package dan memiliki database CRM sendiri sejak awal; deployment awal tetap berupa modular monolith agar tim tidak dibebani operasi microservices. Boundary tetap API-first sehingga Voucher atau Integration Service dapat diekstrak nanti.
 
 ```text
-Tahap 1: CRM app + CRM DB + integration worker
+Tahap 1: Go crm-api + Go crm-worker + PostgreSQL CRM
 Tahap 2: Voucher module dan webhook delivery dipisahkan bila load/ownership menuntut
 Tahap 3: Event bus terkelola dan reporting read model terpisah
 ```
+
+`crm-api` menangani request interaktif, public booking, dan webhook receiver. `crm-worker` menangani reminder, expiry, outbox delivery, inbox processing, dan reconciliation. Keduanya dibangun dari repository Go yang sama dan menggunakan business package yang sama.
 
 ## Pola komunikasi
 
@@ -80,6 +82,18 @@ Dipakai untuk perubahan status dan side effect:
 6. **No credential leakage** - CRM tidak menangani password atau secret activation user.
 7. **Configuration over code** - aturan campaign, eligibility, benefit, expiry, dan kapasitas webinar dikonfigurasi.
 8. **Auditability** - perubahan attribution, diskon, status voucher, dan status opportunity selalu memiliki jejak audit.
+9. **Go simplicity** - utamakan standard library atau dependency tipis, SQL eksplisit, dan concurrency yang selalu bounded/cancellable.
+
+## Baseline implementasi Go
+
+```text
+cmd/crm-api       HTTP API dan webhook receiver
+cmd/crm-worker    background job dan integration delivery
+internal/*        package per domain CRM
+PostgreSQL        data CRM, idempotency, outbox, dan inbox
+```
+
+API bersifat stateless. Perubahan domain dan outbox event ditulis dalam transaction yang sama; worker mengirim event dengan retry dan idempotency. Detail lengkap terdapat pada dokumen Arsitektur Implementasi Go dan ADR-002.
 
 ## Arsitektur logis
 
@@ -133,4 +147,3 @@ Target awal yang perlu disepakati dengan tim operasi:
 - Webhook dikirim ulang dengan exponential backoff dan dead-letter queue setelah batas retry.
 - Tidak ada kehilangan event setelah event tercatat sebagai `outbox`.
 - Semua request lintas sistem memiliki `correlation_id`.
-

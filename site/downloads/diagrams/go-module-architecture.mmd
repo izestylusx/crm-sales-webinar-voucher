@@ -1,0 +1,42 @@
+flowchart TB
+    subgraph Processes[Go deployment processes]
+      API[cmd/crm-api]
+      WORKER[cmd/crm-worker]
+    end
+
+    subgraph Domains[internal domain packages]
+      AUTH[auth]
+      LEAD[lead / account / activity]
+      WEB[webinar]
+      CAM[campaign]
+      VCH[voucher]
+      OPP[opportunity]
+      COM[commission]
+      INT[integration]
+    end
+
+    subgraph Adapters[technical adapters]
+      PG[persistence / PostgreSQL]
+      PC[platformclient]
+      BC[billingclient]
+      TEL[telemetry]
+    end
+
+    API --> AUTH
+    API --> LEAD
+    API --> WEB
+    API --> CAM
+    API --> VCH
+    API --> OPP
+    WORKER --> WEB
+    WORKER --> VCH
+    WORKER --> COM
+    WORKER --> INT
+    Domains --> PG
+    INT --> PC
+    INT --> BC
+    Processes --> TEL
+    PG --> DB[(CRM PostgreSQL + outbox/inbox)]
+    PC --> PLATFORM[Existing education platform]
+    BC --> BILLING[Existing billing/payment]
+

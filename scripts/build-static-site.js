@@ -14,7 +14,9 @@ const docDefinitions = [
   { slug: 'api-webhook-contracts', title: 'API & Webhook Contracts', eyebrow: 'Integration', file: 'docs/04-api-webhook-contracts.md', section: 'Core docs', status: 'Draft', description: 'Kontrak REST, webhook, event envelope, retry, dan idempotency.' },
   { slug: 'security-observability-and-operations', title: 'Security & Operations', eyebrow: 'Guardrails', file: 'docs/05-security-observability-and-operations.md', section: 'Core docs', status: 'Draft', description: 'Security baseline, observability, reliability, dan runbook awal.' },
   { slug: 'delivery-roadmap-and-open-decisions', title: 'Roadmap & Open Decisions', eyebrow: 'Next', file: 'docs/06-delivery-roadmap-and-open-decisions.md', section: 'Core docs', status: 'Next', description: 'Tahapan delivery, definition of done, dan keputusan terbuka.' },
+  { slug: 'go-implementation-architecture', title: 'Go Implementation Architecture', eyebrow: 'Implementation', file: 'docs/07-go-implementation-architecture.md', section: 'Core docs', status: 'Accepted', description: 'Struktur Go, API/worker, PostgreSQL outbox, testing, dan deployment MVP.' },
   { slug: 'adr-system-boundaries', title: 'ADR: System Boundaries', eyebrow: 'Decision record', file: 'docs/adr/ADR-001-system-boundaries.md', section: 'References', status: 'Accepted', description: 'Alasan pemisahan CRM, platform, dan billing.' },
+  { slug: 'adr-go-backend-architecture', title: 'ADR: Go Backend Architecture', eyebrow: 'Decision record', file: 'docs/adr/ADR-002-go-backend-architecture.md', section: 'References', status: 'Accepted', description: 'Keputusan modular monolith Go dengan process API dan worker.' },
 ];
 
 const downloads = [
@@ -22,6 +24,7 @@ const downloads = [
   { id: 'event-envelope', label: 'Event envelope JSON', source: 'contracts/event-envelope.json', output: 'downloads/contracts/event-envelope.json' },
   { id: 'webhook-openapi', label: 'Webhook OpenAPI YAML', source: 'contracts/webhook-openapi.yaml', output: 'downloads/contracts/webhook-openapi.yaml' },
   { id: 'system-context', label: 'System context diagram', source: 'diagrams/system-context.mmd', output: 'downloads/diagrams/system-context.mmd' },
+  { id: 'go-module-architecture', label: 'Go module architecture diagram', source: 'diagrams/go-module-architecture.mmd', output: 'downloads/diagrams/go-module-architecture.mmd' },
   { id: 'individual-flow', label: 'Individual conversion diagram', source: 'diagrams/individual-flow.mmd', output: 'downloads/diagrams/individual-flow.mmd' },
   { id: 'school-flow', label: 'School procurement diagram', source: 'diagrams/school-flow.mmd', output: 'downloads/diagrams/school-flow.mmd' },
 ];

@@ -4,12 +4,14 @@
 
 - Inventaris API/event existing platform dan billing.
 - Tetapkan owner data, glossary, ID strategy, dan status vocabulary.
+- Tetapkan Go module, layout `cmd`/`internal`, migration workflow, serta CI baseline.
 - Pilih provider webinar awal.
 - Kunci policy voucher dan commission.
 - Buat OpenAPI/event fixtures serta threat review.
 
 ## Tahap 1 - Sales workspace dan webinar
 
+- Bangun binary `crm-api` dan `crm-worker` dengan PostgreSQL connection, health check, logging, dan graceful shutdown.
 - Auth/RBAC internal.
 - Lead/contact/account dan activity timeline.
 - Webinar event/session, public booking, capacity, confirmation, reminder.
@@ -42,6 +44,7 @@
 ## Tahap 5 - Hardening
 
 - Contract testing di CI.
+- Static analysis, race test worker, migration test, dan capacity test untuk public booking/voucher validation.
 - Reconciliation dan operational console.
 - Provider webinar callback otomatis.
 - Reporting read model dan data warehouse export.
@@ -59,6 +62,7 @@
 8. Apakah CRM membuat lead dari public booking secara langsung atau melalui anti-duplication queue?
 9. Provider billing existing menyediakan webhook yang signed dan event versioned?
 10. Apakah platform sudah memiliki order/subscription API yang dapat dipakai tanpa perubahan besar?
+11. Standar internal Go apa yang sudah dimiliki tim: router, PostgreSQL driver/query tool, logger, telemetry, dan migration tool?
 
 ## Definition of done MVP
 
@@ -69,4 +73,3 @@
 - Audit log tersedia untuk perubahan sensitif.
 - Dashboard operasi menunjukkan delivery failure dan dead-letter item.
 - Rollback/replay runbook telah diuji.
-

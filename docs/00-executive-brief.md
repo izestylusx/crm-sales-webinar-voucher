@@ -15,6 +15,7 @@ Pengguna utama CRM adalah salesperson. Admin sales, finance, marketing, dan oper
 5. Funnel individu dan sekolah berbeda setelah voucher diterbitkan.
 6. Voucher individu dapat mengantarkan user ke checkout langsung. Voucher sekolah menjadi benefit atau referensi pada opportunity/quotation, bukan jalur checkout individu.
 7. Akses platform diaktifkan oleh platform setelah status order/subscription valid; CRM tidak pernah mengaktifkan akses secara langsung.
+8. Backend CRM menggunakan Go sebagai modular monolith pada MVP, dengan process API dan worker terpisah serta satu PostgreSQL database CRM.
 
 ## Nilai yang ingin dicapai
 
@@ -45,6 +46,7 @@ Pengguna utama CRM adalah salesperson. Admin sales, finance, marketing, dan oper
 - Perhitungan pajak/akuntansi penuh.
 - Self-service procurement sekolah tanpa approval.
 - Microservice decomposition yang memaksa operational overhead sejak hari pertama.
+- Message broker, service mesh, atau orchestration platform khusus sebelum volume dan kebutuhan operasional terbukti.
 
 ## Success criteria MVP
 
@@ -53,4 +55,3 @@ Pengguna utama CRM adalah salesperson. Admin sales, finance, marketing, dan oper
 - Pembayaran individu yang berhasil menghasilkan redemption dan aktivasi akun yang idempotent.
 - Opportunity sekolah dapat bergerak dari lead sampai `payment_pending` tanpa membuat akun murid/guru prematur.
 - Semua event antar-sistem dapat dilacak dengan correlation ID dan event ID.
-

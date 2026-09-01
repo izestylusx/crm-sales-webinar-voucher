@@ -73,6 +73,17 @@ error_code
 - Replay event dari outbox atau dead-letter queue setelah perbaikan.
 - Reconciliation job harian untuk membandingkan order/payment/subscription yang terkait voucher.
 
+## Baseline operasi Go
+
+- `context.Context` membawa cancellation dan deadline dari HTTP handler sampai query serta outbound call.
+- Semua HTTP client memiliki timeout, connection reuse, response size limit, dan retry selektif.
+- Worker memakai concurrency terbatas; setiap goroutine memiliki owner dan jalur shutdown.
+- API dan worker mendukung graceful shutdown dengan deadline.
+- Error internal dibungkus dengan konteks, sementara response menggunakan error code stabil tanpa stack trace.
+- Endpoint `/health/live`, `/health/ready`, dan `/metrics` dipisahkan sesuai kebutuhan akses operasional.
+- Endpoint debug/profiling tidak diekspos ke internet publik.
+- CI menjalankan formatting, static analysis, unit/integration tests, build kedua binary, serta race test pada kode concurrency yang relevan.
+
 ## Incident dan recovery
 
 Runbook minimum:
@@ -84,4 +95,3 @@ Runbook minimum:
 5. Booking spam atau voucher enumeration.
 
 Setiap runbook mencantumkan indikator, query/dashboard, tindakan aman, dan cara melakukan replay idempotent.
-
