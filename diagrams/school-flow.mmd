@@ -1,18 +1,16 @@
+%% POST-MVP REFERENCE - not part of the active Webinar-first MVP.
 sequenceDiagram
+    title Post-MVP reference: school procurement and BOS
     participant SP as Salesperson
     participant CRM as CRM
-    participant SCH as School contact
+    participant SCH as School Contact
     participant BILL as Billing
     participant PLAT as Platform
 
-    SP->>CRM: Convert lead menjadi school account
-    CRM->>CRM: Create opportunity
-    CRM-->>SCH: Proposal/quotation dan benefit voucher
-    SCH-->>CRM: Procurement/BOS documents, PO atau approval
+    SP->>CRM: Create school opportunity
+    CRM-->>SCH: Proposal/quotation
+    SCH-->>CRM: Procurement/BOS approval
     CRM->>BILL: Request invoice
-    BILL-->>CRM: invoice.created
-    BILL-->>CRM: payment.pending / payment.paid
+    BILL-->>CRM: Payment status
     CRM->>PLAT: Request organization provisioning
-    PLAT-->>CRM: school.provisioned
-    PLAT-->>SCH: Admin invitation
-    CRM->>CRM: Mark opportunity won dan commission eligible
+    PLAT-->>CRM: School provisioned

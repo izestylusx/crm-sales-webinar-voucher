@@ -1,45 +1,48 @@
-# CRM Sales, Webinar, dan Voucher
+# CRM Webinar Management
 
-Dokumentasi rancangan untuk memisahkan CRM dari platform AI pendidikan yang sudah berjalan.
+Dokumentasi rancangan **Webinar-first MVP** untuk membantu salesperson mengelola calon client dari undangan sampai follow-up setelah webinar.
 
-## Tujuan
-
-CRM ini membantu salesperson mengelola seluruh funnel pendekatan calon client:
+## Fokus MVP
 
 ```text
-Lead -> Webinar -> Attendance -> Voucher -> Conversion
-                              |-> Individu: checkout langsung
-                              |-> Sekolah: opportunity, proposal, BOS, invoice
+Webinar dibuat -> Sesi dipublikasikan -> Calon client booking
+               -> Konfirmasi dan reminder -> Attendance
+               -> Follow-up salesperson
 ```
 
-CRM bukan pengganti platform pembelajaran dan bukan pengganti payment/billing. CRM menjadi sistem komersial dan sales; platform tetap menjadi sumber kebenaran untuk identitas user, organisasi sekolah, subscription entitlement, dan akses belajar.
+Voucher management, payment integration, subscription activation, opportunity sekolah, proses dana BOS, dan commission management **dipending ke post-MVP**. Keputusan boundary lama tetap disimpan sebagai referensi agar pengembangan berikutnya tidak mencampur database CRM, platform pendidikan, dan billing.
 
-Backend produk dirancang berbasis **Go** sebagai modular monolith untuk MVP: satu codebase, satu PostgreSQL database CRM, serta process `crm-api` dan `crm-worker`. Pendekatan ini menjaga implementasi sederhana tanpa mengorbankan batas domain dan kesiapan integrasi.
+Backend produk tetap dirancang dengan **Go** sebagai modular monolith: satu codebase, satu PostgreSQL database, serta process `crm-api` dan `crm-worker`. `crm-api` menangani dashboard dan booking, sedangkan `crm-worker` menangani reminder dan pekerjaan terjadwal.
 
-## Cara membaca dokumentasi
+## Dokumen aktif
 
-1. [Executive brief](docs/00-executive-brief.md) - ringkasan keputusan dan ruang lingkup.
-2. [Architecture vision](docs/01-architecture-vision.md) - visi target, boundary, dan prinsip.
-3. [MVP scope and flows](docs/02-mvp-scope-and-flows.md) - fitur salesperson, webinar, voucher, individu, dan sekolah.
-4. [Domain model and ownership](docs/03-domain-model-and-ownership.md) - entity, ownership, dan lifecycle.
-5. [API and webhook contracts](docs/04-api-webhook-contracts.md) - integrasi synchronous/asynchronous.
-6. [Security, observability, operations](docs/05-security-observability-and-operations.md) - kontrol operasional dan reliability.
-7. [Roadmap and open decisions](docs/06-delivery-roadmap-and-open-decisions.md) - tahapan delivery dan keputusan yang perlu dikunci.
-8. [Go implementation architecture](docs/07-go-implementation-architecture.md) - struktur codebase, runtime, PostgreSQL, outbox, testing, dan deployment Go.
-9. [ADR-001: service boundaries](docs/adr/ADR-001-system-boundaries.md) - keputusan batas CRM, platform, dan billing.
-10. [ADR-002: Go backend architecture](docs/adr/ADR-002-go-backend-architecture.md) - keputusan modular monolith Go untuk MVP.
-11. [Event envelope](contracts/event-envelope.json) - contoh envelope event standar.
-12. [Webhook contract](contracts/webhook-openapi.yaml) - kontrak OpenAPI awal untuk endpoint integrasi.
-13. [System context diagram](diagrams/system-context.mmd) - source Mermaid untuk konteks sistem.
-14. [Go module architecture](diagrams/go-module-architecture.mmd) - source Mermaid untuk package dan deployment Go.
-15. [Individual conversion diagram](diagrams/individual-flow.mmd) - source Mermaid untuk jalur self-service.
-16. [School procurement diagram](diagrams/school-flow.mmd) - source Mermaid untuk jalur sekolah dan BOS.
+1. [Executive brief](docs/00-executive-brief.md) - keputusan scope webinar-first.
+2. [Architecture vision](docs/01-architecture-vision.md) - boundary dan arsitektur target MVP.
+3. [MVP scope and flows](docs/02-mvp-scope-and-flows.md) - fitur, journey, state, dan acceptance criteria.
+4. [Domain model and ownership](docs/03-domain-model-and-ownership.md) - entity inti webinar dan data ownership.
+5. [API and webhook contracts](docs/04-api-webhook-contracts.md) - API booking, attendance, follow-up, dan event opsional.
+6. [Security, observability, operations](docs/05-security-observability-and-operations.md) - guardrail operasional MVP.
+7. [Roadmap and open decisions](docs/06-delivery-roadmap-and-open-decisions.md) - urutan delivery dan keputusan yang perlu dikunci.
+8. [Go implementation architecture](docs/07-go-implementation-architecture.md) - struktur Go, database, worker, testing, dan deployment.
+9. [ADR-001: system boundaries](docs/adr/ADR-001-system-boundaries.md) - boundary platform dan billing untuk fase berikutnya.
+10. [ADR-002: Go backend architecture](docs/adr/ADR-002-go-backend-architecture.md) - modular monolith Go.
+11. [ADR-003: webinar-first MVP](docs/adr/ADR-003-webinar-first-mvp.md) - keputusan resmi penundaan voucher.
 
-Versi ringkas untuk dibagikan lintas fungsi tersedia pada `CRM-Architecture-Vision-MVP.docx`.
+Kontrak dan diagram aktif:
+
+- [Webinar OpenAPI](contracts/webinar-openapi.yaml)
+- [Webinar event envelope](contracts/event-envelope.json)
+- [System context](diagrams/system-context.mmd)
+- [Webinar journey](diagrams/webinar-flow.mmd)
+- [Go module architecture](diagrams/go-module-architecture.mmd)
+
+Diagram conversion individu dan sekolah tetap tersedia di repository sebagai **referensi post-MVP**, bukan komitmen delivery saat ini.
+
+Versi ringkas lintas fungsi tersedia pada `CRM-Architecture-Vision-MVP.docx`.
 
 ## Status
 
-Dokumen ini adalah baseline rancangan MVP dan bahan alignment lintas tim. Nilai bisnis seperti harga paket, durasi voucher, aturan komisi, dan provider webinar masih berupa konfigurasi/keputusan yang perlu dikunci.
+Baseline aktif: Webinar-first MVP. Keputusan utama yang masih terbuka adalah provider/link webinar, aturan kapasitas dan duplicate registration, kanal reminder, metode attendance, serta data wajib pada form booking.
 
 ## Portal publik
 
@@ -47,4 +50,4 @@ Portal review tim: [https://izestylusx.github.io/crm-sales-webinar-voucher/](htt
 
 Source repository: [https://github.com/izestylusx/crm-sales-webinar-voucher](https://github.com/izestylusx/crm-sales-webinar-voucher)
 
-Reviewer dapat membuka dokumen dari portal, lalu memakai panel `Team notes` untuk membuat thread feedback GitHub tanpa download/upload.
+Reviewer dapat membaca dokumen dan meninggalkan catatan melalui panel `Team notes` tanpa proses download-upload.

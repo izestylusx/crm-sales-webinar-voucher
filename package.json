@@ -2,7 +2,7 @@
   "name": "crm-sales-webinar-voucher-docs",
   "version": "0.1.0",
   "private": true,
-  "description": "Lightweight online documentation workspace for the CRM architecture MVP",
+  "description": "Lightweight documentation workspace for the Webinar-first CRM MVP",
   "scripts": {
     "start": "node server.js",
     "build:site": "node scripts/build-static-site.js"

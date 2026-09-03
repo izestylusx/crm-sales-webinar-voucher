@@ -4,94 +4,94 @@
 
 ### Identity dan authorization
 
-- SSO/OIDC untuk pengguna internal jika identity provider perusahaan tersedia.
-- RBAC minimum: `salesperson`, `sales_manager`, `marketing`, `finance_viewer`, `integration_operator`, `crm_admin`.
-- Row-level scope: salesperson hanya melihat lead/account miliknya atau yang dibagikan ke tim.
-- Approval diperlukan untuk diskon di atas threshold, revoke voucher redeemed, dan perubahan owner opportunity.
+- Gunakan SSO/OIDC untuk pengguna internal bila identity provider perusahaan tersedia.
+- Role minimum: `salesperson`, `sales_manager`, `marketing_host`, dan `crm_admin`.
+- Salesperson hanya melihat session, participant, dan follow-up miliknya atau team scope yang diberikan.
+- Manager/admin dapat reassign owner; perubahan tercatat pada audit log.
+
+### Public booking protection
+
+- Public session dan management link memakai opaque random token, bukan sequential ID.
+- Rate limit berdasarkan kombinasi IP, token, dan identifier participant.
+- Batasi payload, normalisasi email/telepon, dan validasi server-side.
+- Gunakan honeypot sebagai baseline; aktifkan CAPTCHA bila metrics menunjukkan abuse.
+- Meeting URL tidak dikirim dalam public session listing dan tidak ditulis pada log.
+- Cancel/reschedule memerlukan management token yang disimpan sebagai hash.
 
 ### Data protection
 
-- Simpan password hanya di platform identity; CRM tidak pernah menerima password.
-- Encrypt data in transit dan at rest.
-- Hash voucher code; `code_last4` hanya untuk pencarian operasional.
-- Redact PII di log dan dashboard operational.
-- Retention policy untuk lead tidak aktif, booking, dan audit log.
-
-### API protection
-
-- Signature verification untuk webhook.
-- OAuth scopes atau mTLS untuk service-to-service.
-- Rate limit public booking, voucher validation, dan resend notification.
-- Input validation dan allowlist untuk `product_id`, voucher type, dan event type.
-- Idempotency key wajib untuk issue, reserve, redeem, convert, dan provisioning request.
+- Encrypt traffic dan storage sesuai standar platform.
+- Redact email, telepon, management token, dan meeting URL dari log.
+- Pisahkan consent komunikasi dari status attendance.
+- Tetapkan retention dan deletion policy participant sebelum production.
+- Jangan menyimpan password platform, payment data, atau data akademik.
 
 ## Observability
 
-### Log terstruktur
-
-Field minimum:
+### Structured log
 
 ```text
 timestamp
 level
 service
 request_id
-correlation_id
-event_id
 actor_id
-entity_type
-entity_id
+session_id
+registration_id
+job_id
 outcome
 error_code
+duration_ms
 ```
 
-### Metrics bisnis
+### Business metrics
 
-- Webinar registration, attendance, no-show rate.
-- Voucher issued, delivered, reserved, redeemed, expired, revoked.
-- Conversion rate attendee -> voucher -> paid.
-- Individual payment success rate.
-- School opportunity aging per stage.
-- BOS/procurement cycle time.
-- Commission pending, eligible, reversed.
+- Published session dan available capacity.
+- Registration, cancellation, dan reschedule count.
+- Attendance rate dan no-show rate.
+- Confirmation/reminder delivery rate.
+- Follow-up pending, overdue, contacted, dan closed.
+- Registration source serta salesperson attribution.
 
-### Metrics teknis
+### Technical metrics
 
-- API latency p50/p95/p99.
-- Webhook delivery success, retry count, dead-letter count.
-- Queue lag dan outbox backlog.
-- Duplicate event rate.
-- Platform/billing dependency error rate.
-- Database connection pool dan slow query count.
+- API latency p50/p95/p99 dan error rate.
+- Booking conflict, duplicate, rate-limit, dan full-session count.
+- Notification queue lag, attempts, failure, dan oldest pending job.
+- CSV import success/error row count.
+- Database pool usage dan slow query count.
 
 ## Reliability patterns
 
-- Transactional outbox untuk event yang berasal dari perubahan CRM.
-- Retry exponential backoff dengan jitter; jangan retry error 4xx permanen.
-- Circuit breaker untuk call platform/billing yang gagal beruntun.
-- Timeout per dependency dan bulkhead untuk worker.
-- Replay event dari outbox atau dead-letter queue setelah perbaikan.
-- Reconciliation job harian untuk membandingkan order/payment/subscription yang terkait voucher.
+- Capacity check dan registration insert dilakukan atomik.
+- Unique constraint mencegah duplicate registration sesuai policy.
+- Notification job menggunakan lease/locking agar tidak diproses dua worker.
+- Retry memakai exponential backoff dengan jitter dan retry budget.
+- Cancellation membatalkan reminder pending secara idempotent.
+- Graceful degradation: booking tetap tersimpan bila notification provider sementara gagal.
+- Reconciliation job memeriksa registration confirmed yang tidak memiliki notification job atau attendance result setelah session selesai.
+
+Transactional outbox hanya diperlukan jika webhook eksternal diaktifkan. Untuk reminder internal, PostgreSQL `notification_job` sudah cukup.
 
 ## Baseline operasi Go
 
-- `context.Context` membawa cancellation dan deadline dari HTTP handler sampai query serta outbound call.
-- Semua HTTP client memiliki timeout, connection reuse, response size limit, dan retry selektif.
-- Worker memakai concurrency terbatas; setiap goroutine memiliki owner dan jalur shutdown.
+- `context.Context` membawa cancellation dan deadline sampai query serta outbound notification call.
+- Semua HTTP client memiliki timeout, connection reuse, dan response size limit.
+- Worker menggunakan bounded concurrency; setiap goroutine memiliki owner dan jalur shutdown.
 - API dan worker mendukung graceful shutdown dengan deadline.
-- Error internal dibungkus dengan konteks, sementara response menggunakan error code stabil tanpa stack trace.
-- Endpoint `/health/live`, `/health/ready`, dan `/metrics` dipisahkan sesuai kebutuhan akses operasional.
-- Endpoint debug/profiling tidak diekspos ke internet publik.
-- CI menjalankan formatting, static analysis, unit/integration tests, build kedua binary, serta race test pada kode concurrency yang relevan.
+- Error response memakai code stabil tanpa stack trace atau detail database.
+- Endpoint `/health/live`, `/health/ready`, dan `/metrics` hanya tersedia sesuai kebijakan jaringan.
+- Debug/profiling endpoint tidak diekspos ke internet.
+- CI menjalankan formatting, static analysis, unit/integration test, build kedua binary, dan race test worker.
 
-## Incident dan recovery
+## Runbook minimum
 
-Runbook minimum:
+1. Session overbooked atau capacity mismatch.
+2. Duplicate registration lolos policy.
+3. Confirmation/reminder gagal atau backlog meningkat.
+4. Session dibatalkan setelah reminder dikirim.
+5. CSV attendance salah mapping atau salah session.
+6. Timezone/display time berbeda antara dashboard dan notification.
+7. Public booking spam atau management token abuse.
 
-1. Webhook billing tertahan.
-2. Voucher berhasil dibayar tetapi belum redeemed.
-3. Subscription aktif tetapi CRM belum menerima event.
-4. Duplicate redemption atau duplicate activation.
-5. Booking spam atau voucher enumeration.
-
-Setiap runbook mencantumkan indikator, query/dashboard, tindakan aman, dan cara melakukan replay idempotent.
+Setiap runbook berisi indikator, query/dashboard, tindakan aman, cara koreksi, dan kebutuhan audit trail.

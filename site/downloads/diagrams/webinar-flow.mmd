@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant SP as Salesperson
+    participant CRM as Webinar CRM
+    participant C as Calon Client
+    participant N as Notification Channel
+
+    SP->>CRM: Create and publish session
+    CRM-->>SP: Public booking URL
+    SP-->>C: Share booking URL
+    C->>CRM: Choose session and submit booking
+    CRM->>CRM: Atomic capacity and duplicate check
+    CRM-->>C: Registration confirmed
+    CRM->>N: Queue confirmation and reminders
+    N-->>C: Send schedule and meeting link
+    SP->>CRM: Record or import attendance
+    CRM-->>SP: Attended/no-show list
+    SP->>CRM: Complete follow-up task
+

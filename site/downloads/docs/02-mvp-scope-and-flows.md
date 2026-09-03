@@ -1,137 +1,127 @@
-# Rancangan MVP dan Alur Bisnis
+# Rancangan MVP Webinar dan Alur Bisnis
 
-## Persona dan job-to-be-done
+## Persona
 
 | Persona | Kebutuhan utama | Hak akses MVP |
 |---|---|---|
-| Salesperson | Menemukan lead, mengisi webinar, follow-up, memberi voucher, mengubah lead menjadi conversion | Lead milik sendiri/tim, webinar, aktivitas, voucher sesuai policy, opportunity |
-| Sales manager | Memantau pipeline, approval discount, reassignment, performa tim | Scope tim, approval, reports |
-| Marketing | Mengelola campaign dan webinar content | Campaign dan webinar, tanpa akses payment detail sensitif |
-| Finance | Memeriksa invoice/payment/refund dan komisi eligible | Read-only financial view atau link ke billing |
-| Integration operator | Memantau sync, retry, dead-letter | Operational console, tidak melihat password |
+| Salesperson | Menjadwalkan webinar, mengundang calon client, memantau peserta, dan follow-up | Sesi serta peserta milik sendiri/tim sesuai scope |
+| Sales manager | Memantau volume, attendance, dan follow-up tim | Read team scope, reassign owner, report |
+| Marketing/host | Membantu menyiapkan topik dan materi webinar | Kelola event/session yang diberikan |
+| CRM admin | Mengelola role, template, dan konfigurasi dasar | Full configuration dan audit access |
+| Calon client | Memilih jadwal dan menerima informasi webinar | Public booking, cancel, dan reschedule melalui token aman |
+
+Finance dan integration operator tidak diperlukan sebagai role MVP selama payment dan integrasi lintas sistem dipending.
 
 ## Modul MVP
 
-### Sales workspace
+### Webinar management
 
-- Dashboard: task hari ini, webinar terdekat, lead overdue, voucher outstanding, opportunity stage.
-- Lead list dengan filter status, source, owner, segment, last activity.
-- Timeline aktivitas: call, WhatsApp, email, note, booking, attendance, voucher, payment event.
-- Task dan follow-up dengan due date.
+- Event/template: judul, deskripsi, audience, host, dan materi ringkas.
+- Session: tanggal, waktu, timezone, durasi, kapasitas, meeting URL, dan status.
+- Status session: `draft`, `published`, `full`, `completed`, `cancelled`.
+- Publish menghasilkan public booking URL yang tidak mengekspos ID berurutan.
 
-### Webinar booking
+### Public booking
 
-- `webinar_event`: judul, deskripsi, host, provider URL, timezone, start/end, kapasitas, status.
-- `webinar_session`: satu jadwal konkret dari event.
-- Public booking page menggunakan token publik, bukan ID internal berurutan.
-- Reminder configurable; provider webinar dapat Zoom, Meet, atau link eksternal.
-- Attendance dapat diinput manual, CSV import, atau callback provider pada fase lanjutan.
+- Calon client memilih session yang published dan masih tersedia.
+- Form minimum: nama, email atau nomor telepon sesuai kanal, tipe calon client, dan consent.
+- Booking memeriksa kapasitas dan duplicate registration secara atomik.
+- Participant menerima confirmation serta management link untuk cancel/reschedule.
+- Anti-spam memakai rate limit dan honeypot/CAPTCHA hanya bila abuse terbukti.
 
-### Campaign dan voucher
+### Reminder dan notification
 
-- Campaign menentukan target audience, eligibility, benefit, expiry, dan owner.
-- Voucher dapat issued ke peserta atau account sekolah.
-- Code/token unik, sulit ditebak, dan status lifecycle tercatat.
-- Policy mencegah re-use, over-limit, kombinasi benefit yang tidak diizinkan, dan voucher setelah revoke.
+- Confirmation dikirim setelah booking berhasil.
+- Reminder memiliki jadwal configurable, misalnya H-1 dan H-1 jam.
+- Delivery status terlihat: `pending`, `sent`, `failed`, `cancelled`.
+- Session yang dibatalkan menghentikan reminder lama dan mengirim pemberitahuan pembatalan.
 
-## Funnel individu
+### Attendance
 
-```mermaid
-sequenceDiagram
-    participant SP as Salesperson
-    participant CRM as CRM
-    participant U as Individu
-    participant PLAT as Platform
-    participant BILL as Billing
+- Input manual per participant.
+- Bulk import CSV sebagai jalur operasional awal.
+- Status: `unknown`, `attended`, `no_show`.
+- Provider callback otomatis dipindahkan ke fase setelah MVP kecuali provider sudah menyediakan integrasi yang sangat sederhana.
 
-    SP->>CRM: Lihat attendee eligible
-    CRM->>CRM: Issue voucher
-    CRM-->>U: Kirim redeem link
-    U->>PLAT: Masukkan voucher
-    PLAT->>CRM: POST /v1/vouchers/validate
-    CRM-->>PLAT: Benefit + reservation window
-    PLAT->>BILL: Create order/payment
-    BILL-->>PLAT: payment.paid
-    PLAT->>CRM: redeem voucher (idempotent)
-    CRM-->>PLAT: redeemed
-    PLAT->>PLAT: Create/activate identity dan entitlement
-    PLAT-->>U: Activation link dan detail onboarding
-    CRM->>CRM: Attribution dan commission pending
-```
+### Follow-up salesperson
 
-Aturan penting:
+- Daftar peserta difilter berdasarkan attendance dan owner.
+- Follow-up status: `not_started`, `planned`, `contacted`, `closed`.
+- Task memiliki due date, owner, note, dan outcome ringan.
+- MVP tidak mengubah follow-up menjadi opportunity, voucher, atau payment.
 
-- Buyer dan beneficiary boleh berbeda, misalnya orang tua membayar untuk murid.
-- Jika total order nol, tetap buat `zero_value_order`.
-- Redemption final hanya setelah order/payment memenuhi policy.
-- Activation link dibuat oleh platform, bukan dikirim sebagai password oleh CRM.
-
-## Funnel sekolah
+## Journey utama
 
 ```mermaid
 sequenceDiagram
     participant SP as Salesperson
-    participant CRM as CRM
-    participant SCH as School contact
-    participant BILL as Billing
-    participant PLAT as Platform
+    participant CRM as Webinar CRM
+    participant C as Calon Client
+    participant N as Notification Channel
 
-    SP->>CRM: Convert lead menjadi school account
-    CRM->>CRM: Create opportunity
-    CRM-->>SCH: Proposal/quotation dan benefit voucher
-    SCH-->>CRM: Procurement/BOS documents, PO atau approval
-    CRM->>BILL: Request invoice melalui integration API
-    BILL-->>CRM: invoice.created
-    BILL-->>CRM: payment.pending / payment.paid
-    CRM->>PLAT: Request organization provisioning setelah policy terpenuhi
-    PLAT-->>CRM: school.provisioned
-    PLAT-->>SCH: Admin invitation
-    CRM->>CRM: Mark opportunity won dan commission eligible
+    SP->>CRM: Create dan publish session
+    CRM-->>SP: Public booking URL
+    SP-->>C: Bagikan URL
+    C->>CRM: Pilih session dan submit booking
+    CRM->>CRM: Capacity + duplicate check
+    CRM-->>C: Booking confirmed
+    CRM->>N: Queue confirmation dan reminder
+    N-->>C: Kirim jadwal dan meeting link
+    SP->>CRM: Catat/import attendance
+    CRM->>CRM: Tandai attended atau no_show
+    CRM-->>SP: Buat daftar follow-up
+    SP->>CRM: Catat follow-up status dan note
 ```
 
-Voucher sekolah tidak otomatis membuat murid/guru. Ia melekat pada `school_account` atau `opportunity`, kemudian benefit di-snapshot pada quotation/order. Jumlah seat dan durasi harus disetujui sebelum provisioning.
-
-## State machine utama
-
-### Booking
+## Reschedule dan cancellation
 
 ```text
-registered -> confirmed -> attended
-                       \-> no_show
+confirmed -> cancelled
+confirmed -> rescheduled -> confirmed pada session baru
 ```
 
-### Voucher
+- Reschedule memesan kursi session baru lebih dulu dalam transaction yang sama sebelum melepas kursi lama.
+- Cancellation mengurangi reserved seat dan membatalkan reminder yang belum dikirim.
+- Session cancelled tidak menerima booking baru.
+- Meeting URL hanya ditampilkan kepada participant yang memiliki management token atau melalui notification yang sah.
+
+## State utama
+
+### Session
 
 ```text
-draft -> issued -> reserved -> redeemed
-              |       |
-              |       +-> available (reservation expired)
-              +-> revoked
-issued/available -> expired
+draft -> published -> full -> completed
+              |          |
+              +----------+-> cancelled
 ```
 
-### Individual conversion
+Status `full` dapat dihitung dari kapasitas, tetapi tetap tampil sebagai kondisi operasional.
+
+### Registration
 
 ```text
-lead -> webinar_registered -> attended -> voucher_issued
-     -> checkout_started -> payment_pending -> paid -> activated
+confirmed -> attended
+     |      -> no_show
+     +-> cancelled
+     +-> rescheduled
 ```
 
-### School opportunity
+### Follow-up
 
 ```text
-lead -> qualified -> discovery -> proposal_sent -> procurement_bos
-     -> approval_pending -> invoice_issued -> payment_pending
-     -> paid -> provisioning -> won
+not_started -> planned -> contacted -> closed
 ```
 
 ## Acceptance criteria MVP
 
-- Booking menolak sesi penuh dan duplicate registration berdasarkan policy.
-- Attendance dapat diubah hanya oleh role yang berwenang dan tercatat di audit log.
-- Issue voucher bersifat idempotent untuk pasangan `campaign_id + attendee_id`.
-- Reserve voucher memiliki TTL dan dapat dilepas otomatis.
-- Redeem tidak dapat terjadi dua kali untuk voucher single-use.
-- Payment webhook duplicate tidak menggandakan activation atau komisi.
-- Sekolah dapat tetap berada pada `procurement_bos` tanpa membuat akun belajar aktif.
+- Hanya session `published` yang dapat dibooking.
+- Booking concurrent tidak dapat melebihi kapasitas.
+- Duplicate submit dengan data dan session sama tidak membuat record kedua.
+- Waktu ditampilkan konsisten sesuai timezone session dan participant.
+- Cancel/reschedule memerlukan management token yang sulit ditebak.
+- Reminder tidak dikirim kepada registration yang cancelled atau session yang cancelled.
+- Import attendance menampilkan preview dan error per row sebelum commit.
+- Koreksi attendance tercatat dalam audit log.
+- Salesperson dapat melihat dan mengekspor peserta serta menyelesaikan follow-up.
+- Tidak ada dependency payment, voucher, atau platform provisioning dalam end-to-end test MVP.
 

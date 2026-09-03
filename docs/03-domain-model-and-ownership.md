@@ -1,92 +1,125 @@
 # Domain Model dan Data Ownership
 
-## Entity inti CRM
+## Entity inti MVP
 
 | Entity | Owner | Catatan |
 |---|---|---|
-| `crm_user` | CRM | Pengguna internal: salesperson, manager, marketing, finance, operator |
-| `lead` | CRM | Calon client sebelum menjadi account; source dan owner wajib ada |
-| `contact` | CRM | Individu yang berinteraksi; simpan role bisnis seperti parent, teacher, principal |
-| `commercial_account` | CRM | Account penjualan; dapat bertipe `individual` atau `school` |
-| `sales_activity` | CRM | Call, note, email, WhatsApp, meeting, webinar interaction |
-| `task` | CRM | Follow-up dan due date salesperson |
-| `campaign` | CRM | Aturan marketing, webinar, voucher, dan attribution |
-| `webinar_event` | CRM | Template/topik webinar |
-| `webinar_session` | CRM | Jadwal konkret dan kapasitas |
-| `webinar_registration` | CRM | Peserta dan attendance status |
-| `voucher` | CRM/Voucher | Code hash, benefit, lifecycle, assignment, external references |
-| `opportunity` | CRM | Pipeline sekolah atau conversion individu bernilai tinggi |
-| `quotation_reference` | CRM + Billing | Metadata proposal; nominal final dimiliki order/billing |
-| `commission_record` | CRM | Perhitungan attribution; payment/refund menjadi input eksternal |
-| `integration_delivery` | CRM/Integration | Queue, attempt, status, next retry, last error |
+| `crm_user` | CRM | Salesperson, manager, marketing/host, admin |
+| `webinar_event` | CRM | Topik/template webinar yang dapat memiliki beberapa session |
+| `webinar_session` | CRM | Jadwal konkret, timezone, host, capacity, meeting URL, status |
+| `participant` | CRM | Data kontak minimum calon client untuk booking dan follow-up |
+| `webinar_registration` | CRM | Booking participant ke satu session |
+| `attendance_record` | CRM | Status kehadiran, source, actor, timestamp |
+| `notification_job` | CRM | Confirmation/reminder/cancellation delivery dan retry |
+| `follow_up_task` | CRM | Owner, due date, status, note, outcome |
+| `audit_log` | CRM | Perubahan session, registration, attendance, dan ownership |
+| `integration_delivery` | CRM, optional | Hanya dibuat jika event/webhook eksternal benar-benar diaktifkan |
 
-## External references
+Entity `voucher`, `voucher_redemption`, `opportunity`, `quotation_reference`, `commission_record`, order, dan payment tidak dibuat pada schema MVP.
 
-CRM menyimpan ID eksternal berikut jika sudah tersedia:
+## Model webinar session
 
 ```text
-platform_user_id
-platform_organization_id
-platform_order_id
-platform_subscription_id
-billing_customer_id
-billing_invoice_id
-payment_transaction_id
+webinar_session
+- id
+- webinar_event_id
+- public_token
+- title_override (nullable)
+- host_user_id
+- starts_at_utc
+- ends_at_utc
+- timezone
+- capacity
+- meeting_url_encrypted
+- status
+- published_at (nullable)
+- cancelled_at (nullable)
+- cancellation_reason (nullable)
+- created_at / updated_at
 ```
 
-Email, nomor telepon, dan nama bukan kunci integrasi utama. Perubahan data contact harus memiliki aturan merge dan conflict resolution.
+`starts_at_utc` dan `ends_at_utc` menjadi nilai perhitungan. `timezone` disimpan untuk display dan komunikasi kepada participant.
 
-## Voucher data model minimal
+## Model participant dan registration
 
 ```text
-voucher
+participant
 - id
-- code_hash
-- code_last4
-- campaign_id
-- voucher_type (discount, trial, free_seat, extension, credit)
-- benefit_config_json
-- audience_type (individual, school, both)
-- max_redemptions
-- redemption_count
-- valid_from
-- valid_until
-- status
-- assigned_salesperson_id
-- assigned_contact_id (nullable)
-- assigned_account_id (nullable)
-- reservation_id (nullable)
-- redeemed_order_id (nullable)
+- full_name
+- email_normalized (nullable)
+- phone_normalized (nullable)
+- client_type (student_parent, teacher, school, other)
+- consent_at
 - created_at / updated_at
 ```
 
 ```text
-voucher_redemption
+webinar_registration
 - id
-- voucher_id
-- order_id
-- buyer_reference
-- beneficiary_reference
-- redeemed_at
-- reversal_reason (nullable)
-- idempotency_key
+- webinar_session_id
+- participant_id
+- salesperson_id
+- source
+- campaign_reference (nullable)
+- status
+- management_token_hash
+- registered_at
+- cancelled_at (nullable)
+- rescheduled_from_registration_id (nullable)
+- created_at / updated_at
 ```
 
-## Account model
+Minimal unique constraint ditetapkan berdasarkan policy duplicate, misalnya session + normalized email. Bila email tidak wajib, gunakan kombinasi identifier kanal yang dipilih tim.
 
-### Individual
+## Attendance dan follow-up
 
-- `commercial_account.type = individual`
-- `contact` menjadi buyer atau beneficiary.
-- `platform_user_id` boleh kosong sebelum checkout berhasil.
+```text
+attendance_record
+- id
+- registration_id
+- status (unknown, attended, no_show)
+- source (manual, csv, provider)
+- recorded_by
+- recorded_at
+- import_batch_id (nullable)
+- correction_reason (nullable)
+```
 
-### School
+```text
+follow_up_task
+- id
+- registration_id
+- owner_user_id
+- status
+- due_at (nullable)
+- note (nullable)
+- outcome (nullable)
+- completed_at (nullable)
+- created_at / updated_at
+```
 
-- `commercial_account.type = school`
-- Simpan legal name, NPSN jika relevan, district/province, PIC, procurement stage, dan `platform_organization_id` setelah provisioning.
-- Murid/guru tetap berada di platform; CRM cukup menyimpan aggregate atau count bila dibutuhkan untuk sales.
+## Capacity invariant
+
+Kursi terpakai adalah registration aktif pada session. Capacity check dan insert registration harus berada dalam satu transaction dengan row locking atau constraint/counter yang mencegah overbooking saat request concurrent.
+
+Cancelled atau rescheduled registration tidak menghitung kapasitas. Perubahan capacity di bawah jumlah registration aktif harus ditolak atau membutuhkan prosedur operasional eksplisit.
+
+## Data ownership dan external reference
+
+- CRM menjadi sumber kebenaran untuk jadwal, booking, attendance, dan follow-up webinar.
+- Webinar provider hanya menyediakan meeting link atau attendance source; provider bukan sumber kebenaran seluruh participant CRM.
+- Existing platform tetap sumber kebenaran user dan entitlement, tetapi tidak perlu dipanggil dalam MVP.
+- Billing tidak memiliki data pada workflow MVP.
+- `platform_user_id` boleh ditambahkan kemudian setelah conversion, tetapi tidak menjadi field wajib saat booking.
+
+## Future-compatible fields
+
+Field `source`, `campaign_reference`, `salesperson_id`, stable `registration_id`, dan attendance status dipertahankan agar voucher atau conversion dapat ditambahkan sebagai consumer kemudian. Tidak ada table atau business rule voucher sebelum scope tersebut diaktifkan.
 
 ## Data minimization
 
-CRM hanya menyimpan PII yang dibutuhkan untuk sales dan komunikasi. Jangan menyalin password, token sesi, nilai akademik, isi chat pembelajaran, atau data murid massal ke CRM.
+- Simpan hanya data kontak yang dibutuhkan untuk komunikasi dan follow-up.
+- Jangan menyalin password, session token, nilai akademik, isi pembelajaran, atau data murid massal.
+- Meeting URL diperlakukan sebagai data sensitif dan tidak boleh tampil pada public session list tanpa management token yang sah.
+- Retention dan deletion policy untuk participant yang tidak menjadi customer harus disepakati sebelum production launch.
 

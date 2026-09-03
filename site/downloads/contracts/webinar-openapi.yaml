@@ -1,0 +1,183 @@
+openapi: 3.0.3
+info:
+  title: CRM Webinar MVP API
+  version: 1.0.0
+  description: Webinar-first MVP contract for public booking and core internal operations.
+servers:
+  - url: https://crm.example.com
+paths:
+  /v1/public/webinars/{public_token}:
+    get:
+      summary: Get published webinar sessions
+      operationId: getPublicWebinar
+      parameters:
+        - $ref: '#/components/parameters/PublicToken'
+      responses:
+        '200':
+          description: Published webinar and available sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicWebinar'
+        '404':
+          description: Webinar not found or not published
+  /v1/public/webinars/{public_token}/registrations:
+    post:
+      summary: Book a webinar session
+      operationId: createPublicRegistration
+      parameters:
+        - $ref: '#/components/parameters/PublicToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRegistrationRequest'
+      responses:
+        '201':
+          description: Registration confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '409':
+          description: Session full or duplicate registration
+        '422':
+          description: Validation error
+        '429':
+          description: Rate limited
+  /v1/webinar-registrations/{registration_id}/attendance:
+    post:
+      summary: Record attendance for one registration
+      operationId: recordAttendance
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RegistrationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceRequest'
+      responses:
+        '200':
+          description: Attendance recorded
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient scope
+        '404':
+          description: Registration not found
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PublicToken:
+      name: public_token
+      in: path
+      required: true
+      schema:
+        type: string
+    RegistrationId:
+      name: registration_id
+      in: path
+      required: true
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+  schemas:
+    PublicWebinar:
+      type: object
+      required: [id, title, sessions]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicSession'
+    PublicSession:
+      type: object
+      required: [id, starts_at, timezone, availability]
+      properties:
+        id:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          example: Asia/Jakarta
+        availability:
+          type: string
+          enum: [available, full]
+    CreateRegistrationRequest:
+      type: object
+      required: [session_id, full_name, email, client_type, consent]
+      properties:
+        session_id:
+          type: string
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        client_type:
+          type: string
+          enum: [student_parent, teacher, school, other]
+        salesperson_reference:
+          type: string
+        source:
+          type: string
+        consent:
+          type: boolean
+          enum: [true]
+    RegistrationResponse:
+      type: object
+      required: [registration_id, status, session, notification_status, management_url]
+      properties:
+        registration_id:
+          type: string
+        status:
+          type: string
+          enum: [confirmed]
+        session:
+          $ref: '#/components/schemas/PublicSession'
+        notification_status:
+          type: string
+          enum: [pending]
+        management_url:
+          type: string
+          format: uri
+    AttendanceRequest:
+      type: object
+      required: [status, source]
+      properties:
+        status:
+          type: string
+          enum: [attended, no_show]
+        source:
+          type: string
+          enum: [manual, csv, provider]
+        correction_reason:
+          type: string
+

@@ -2,65 +2,45 @@
 
 ## Status
 
-Accepted for MVP baseline.
+Accepted as a cross-system guardrail. Implementation relevance is post-MVP.
 
 ## Context
 
-Platform AI pendidikan sudah besar dan memiliki domain user serta pembelajaran. Tim membutuhkan CRM terpisah yang berfokus pada salesperson, webinar acquisition, voucher, dan pipeline sekolah. Payment/billing sudah ada dan tidak ingin digabungkan.
+Platform AI pendidikan dan payment/billing sudah berjalan sebagai sistem terpisah. Rancangan awal CRM mencakup webinar, voucher, conversion, dan procurement sekolah. Scope kemudian dipersempit menjadi Webinar-first MVP.
 
 ## Decision
 
-- CRM memiliki data dan workflow komersial.
-- Platform memiliki identity, organization, subscription entitlement, dan akses belajar.
-- Billing/payment memiliki invoice, payment, refund, dan reconciliation.
-- Sistem terhubung dengan versioned API dan event/webhook.
+- Webinar CRM memiliki event, session, registration, attendance, notification delivery, dan follow-up.
+- Existing platform tetap memiliki identity customer, organization, entitlement, dan learning access.
+- Billing/payment tetap memiliki invoice, payment, settlement, dan refund.
 - Tidak ada shared database.
-- Provisioning dan activation selalu diputuskan oleh platform setelah status order/payment valid.
+- Webinar-first MVP tidak melakukan checkout, payment, subscription activation, atau provisioning.
+- Ketika integrasi post-MVP diaktifkan, gunakan versioned API/event dan external ID, bukan direct database access.
 
 ## Rationale
 
-- Mengurangi coupling terhadap platform yang sudah besar.
-- Menghindari duplikasi data sensitif dan konflik ownership.
-- Memungkinkan jalur individu dan sekolah berkembang berbeda.
-- Menjaga payment gateway tetap menjadi concern finansial tersendiri.
-- Memungkinkan ekstraksi modul voucher dan integration worker di kemudian hari.
-
-## Alternatives considered
-
-### CRM langsung mengubah database platform
-
-Ditolak karena membuat coupling schema, sulit diaudit, dan berisiko merusak invariant platform.
-
-### CRM menjadi system of record seluruh user
-
-Ditolak karena CRM tidak membutuhkan data pembelajaran dan tidak seharusnya menangani credential atau membership detail.
-
-### Voucher hanya di payment system
-
-Ditolak karena voucher mulai hidup sejak webinar/attendance dan perlu attribution salesperson, bukan hanya potongan harga saat checkout.
-
-### Microservices penuh sejak hari pertama
-
-Ditunda karena menambah operational complexity. Gunakan modular boundary dan API-first contract; ekstraksi dilakukan bila ada alasan load, ownership, atau compliance.
+- Scope MVP dapat selesai tanpa tergantung perubahan platform besar.
+- Data sensitif dan financial state tidak perlu disalin ke CRM webinar.
+- Boundary tetap jelas ketika voucher dan conversion dibahas kembali.
+- Tim dapat memvalidasi proses webinar sebelum berinvestasi pada integrasi yang lebih luas.
 
 ## Consequences
 
 Positif:
 
-- Ownership jelas.
-- Evolusi CRM lebih cepat untuk kebutuhan sales.
-- Integrasi dapat diobservasi dan di-retry.
+- Runtime dan testing MVP lebih sederhana.
+- Tidak ada distributed workflow payment pada jalur kritis booking.
+- Ownership data tetap aman untuk fase selanjutnya.
 
 Trade-off:
 
-- Status tertentu eventually consistent.
-- Perlu external ID mapping dan reconciliation.
-- Tim harus memelihara kontrak API/event.
+- Conversion setelah webinar belum terlacak otomatis.
+- Handoff pasca follow-up dilakukan manual atau export sampai fase baru disetujui.
+- Kontrak voucher/payment lama bukan bagian baseline aktif.
 
 ## Guardrails
 
-- Setiap entity cross-system memiliki owner tertulis.
-- Semua event memiliki `event_id`, versi, signature, dan correlation ID.
-- Semua consumer idempotent.
-- Perubahan policy voucher/komisi memerlukan audit dan approval.
+- Jangan menambahkan dependency platform/billing untuk menyelesaikan booking atau attendance.
+- Jangan menyalin password, entitlement, payment, atau data akademik ke CRM.
+- Integrasi baru memerlukan use case, owner, consumer, dan acceptance criteria yang nyata.
 

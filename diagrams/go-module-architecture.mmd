@@ -1,42 +1,39 @@
 flowchart TB
-    subgraph Processes[Go deployment processes]
+    subgraph Processes[Go processes]
       API[cmd/crm-api]
       WORKER[cmd/crm-worker]
     end
 
     subgraph Domains[internal domain packages]
       AUTH[auth]
-      LEAD[lead / account / activity]
       WEB[webinar]
-      CAM[campaign]
-      VCH[voucher]
-      OPP[opportunity]
-      COM[commission]
-      INT[integration]
+      REG[registration]
+      PART[participant]
+      ATT[attendance]
+      NOTIF[notification]
+      FUP[followup]
+      AUD[audit]
     end
 
     subgraph Adapters[technical adapters]
-      PG[persistence / PostgreSQL]
-      PC[platformclient]
-      BC[billingclient]
+      PG[persistence]
+      NC[notification client]
       TEL[telemetry]
+      INT[integration - optional]
     end
 
     API --> AUTH
-    API --> LEAD
     API --> WEB
-    API --> CAM
-    API --> VCH
-    API --> OPP
+    API --> REG
+    API --> PART
+    API --> ATT
+    API --> FUP
+    WORKER --> NOTIF
     WORKER --> WEB
-    WORKER --> VCH
-    WORKER --> COM
     WORKER --> INT
     Domains --> PG
-    INT --> PC
-    INT --> BC
+    NOTIF --> NC
     Processes --> TEL
-    PG --> DB[(CRM PostgreSQL + outbox/inbox)]
-    PC --> PLATFORM[Existing education platform]
-    BC --> BILLING[Existing billing/payment]
+    PG --> DB[(PostgreSQL: webinar + jobs + audit)]
+    NC --> CHANNEL[Email / WhatsApp Provider]
 

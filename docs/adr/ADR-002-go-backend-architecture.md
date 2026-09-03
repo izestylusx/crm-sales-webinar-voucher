@@ -2,71 +2,62 @@
 
 ## Status
 
-Accepted for MVP implementation baseline.
+Accepted for Webinar-first MVP.
 
 ## Context
 
-CRM dipisahkan dari platform AI pendidikan dan billing yang sudah ada. Pengguna utama adalah salesperson, sedangkan proses bisnis mencakup lead, webinar, voucher, conversion individu, serta procurement sekolah/BOS. Tim menetapkan Go sebagai bahasa backend dan ingin menjaga MVP sederhana.
+Pengguna utama adalah salesperson. Scope MVP kini terbatas pada webinar, public booking, reminder, attendance, dan follow-up. Tim menetapkan Go sebagai bahasa backend dan ingin menghindari overengineering.
 
 ## Decision
 
-- Backend produk CRM menggunakan Go.
-- MVP dibangun sebagai satu modular monolith dengan satu PostgreSQL database CRM.
-- Codebase menghasilkan minimal dua binary: `crm-api` dan `crm-worker`.
-- Boundary domain diterapkan melalui package di bawah `internal`, bukan deployment service terpisah.
-- Integrasi menggunakan versioned REST API dan event/webhook sesuai ADR-001.
-- Perubahan state CRM dan event keluar dijamin dengan transactional outbox.
-- Event masuk diproses secara idempotent melalui inbox/delivery record dan worker.
-- Kontrak lintas sistem tetap contract-first melalui OpenAPI dan event schema.
+- Backend produk menggunakan Go.
+- MVP dibangun sebagai modular monolith dengan satu PostgreSQL database.
+- Codebase menghasilkan `crm-api` dan `crm-worker`.
+- Package aktif: auth, webinar, registration, participant, attendance, notification, follow-up, audit, persistence, dan telemetry.
+- PostgreSQL job table digunakan untuk reminder/retry.
+- Message broker dan microservices tidak menjadi dependency MVP.
+- Package voucher, payment, opportunity, school procurement, dan commission tidak dibuat.
 
 ## Rationale
 
-- Go cocok untuk API dan worker yang membutuhkan concurrency terkontrol, binary deployment sederhana, dan penggunaan resource yang efisien.
-- Modular monolith mempercepat perubahan lintas domain selama discovery MVP.
-- Satu database memungkinkan transaction boundary yang jelas untuk voucher dan outbox.
-- Package boundary dan adapter interface menjaga kemampuan test serta ekstraksi service di masa depan.
-- Dua process memisahkan latency request pengguna dari pekerjaan asynchronous tanpa menambah banyak deployment.
+- Dua process memisahkan request interaktif dari reminder tanpa memecah repository.
+- PostgreSQL transaction cukup untuk capacity, registration, dan notification job.
+- Package boundary memudahkan testing dan menjaga scope.
+- Deployment tetap sederhana dan dapat dimulai dengan satu instance per process.
 
 ## Alternatives considered
 
 ### Microservices Go sejak awal
 
-Ditunda karena menambah deployment, observability, contract, dan distributed transaction overhead sebelum kebutuhan load atau ownership terbukti.
+Ditolak karena domain aktif kecil dan operational overhead belum memiliki manfaat.
 
-### Satu process untuk API dan seluruh background job
+### Message broker untuk seluruh reminder
 
-Ditolak sebagai topology produksi karena job lambat atau retry dapat memengaruhi API interaktif. Codebase tetap satu, tetapi process API dan worker dipisah.
+Ditunda. PostgreSQL job table cukup untuk volume awal dan mengurangi komponen operasi.
 
-### Message broker wajib sejak MVP
+### Satu process API dan worker
 
-Ditunda. PostgreSQL outbox/inbox cukup untuk durability dan volume awal. Broker dapat ditambahkan bila fan-out, throughput, atau jumlah consumer menuntut.
-
-### Shared database dengan platform
-
-Ditolak sesuai ADR-001 karena merusak ownership dan meningkatkan coupling.
+Masih mungkin untuk local development, tetapi production menggunakan process terpisah agar pekerjaan reminder tidak mengganggu latency booking.
 
 ## Consequences
 
 Positif:
 
-- Build dan deployment sederhana.
-- Business transaction dan event publishing dapat atomik.
-- Test lokal dan debugging lintas funnel lebih mudah.
-- Tim memiliki satu bahasa dan pola implementasi backend.
+- Implementasi dan deployment sederhana.
+- Atomic capacity serta scheduling mudah diuji.
+- Scope package mencerminkan MVP yang benar.
 
 Trade-off:
 
-- Boundary package harus dijaga melalui review karena belum dipaksa oleh network boundary.
-- API dan worker berbagi release artifact/repository.
-- Scaling per domain belum independen sampai modul diekstrak.
+- API dan worker berbagi release repository.
 - PostgreSQL menjadi dependency utama untuk data dan job durability.
+- Scaling per domain belum independen, tetapi belum dibutuhkan.
 
 ## Guardrails
 
-- Package domain tidak mengakses tabel domain lain secara bebas.
-- Tidak ada package global `utils` atau `models` untuk mencampur ownership.
-- Network call tidak dijalankan di dalam database transaction.
-- Semua goroutine memiliki owner, cancellation, dan concurrency bound.
-- Semua mutating integration memakai idempotency key.
-- Ekstraksi service harus memiliki evidence load, ownership, compliance, atau deployment independence.
+- Semua goroutine memiliki cancellation dan concurrency bound.
+- Network call tidak dilakukan di dalam database transaction.
+- Duplicate dan capacity invariant dilindungi transaction serta constraint.
+- Shared package tidak boleh menjadi tempat business logic campuran.
+- Penambahan package post-MVP memerlukan scope decision baru.
 

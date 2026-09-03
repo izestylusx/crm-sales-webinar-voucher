@@ -2,148 +2,114 @@
 
 ## North star
 
-CRM adalah operating system untuk pekerjaan salesperson: menemukan calon client, mengundang mereka ke webinar, mengelola follow-up, menerbitkan benefit, dan mengubah minat menjadi conversion yang dapat diatribusikan.
+CRM MVP adalah operating workspace untuk salesperson dalam menjalankan webinar produk: membuat sesi, menerima booking, mengingatkan peserta, mencatat kehadiran, lalu melakukan follow-up.
 
-CRM tidak menjadi pusat seluruh data platform. Batas ini menjaga domain pembelajaran dan domain komersial dapat berkembang secara independen.
+MVP tidak mencoba menyelesaikan seluruh sales funnel. Ia menghasilkan data peserta dan attendance yang bersih sebagai fondasi untuk voucher atau conversion pada fase berikutnya.
 
 ## Target context map
 
 ```mermaid
 flowchart LR
-    S[Salesperson] --> CRM[CRM Sales Workspace]
-    C[Calon client] --> WEB[Booking page / Webinar]
-    WEB --> CRM
-    CRM --> V[Voucher Module]
-    CRM --> O[Opportunity & Order Orchestration]
-    O --> P[Existing Billing / Payment]
-    O --> PLAT[Education Platform]
-    P --> O
-    PLAT --> O
-    O --> CRM
-    CRM --> R[Reporting & Commission]
+    SP[Salesperson] --> CRM[Webinar Sales Workspace]
+    MGR[Sales Manager] --> CRM
+    C[Calon Client] --> BOOK[Public Booking Page]
+    BOOK --> CRM
+    CRM --> NOTIF[Email / WhatsApp Reminder Adapter]
+    CRM --> LINK[External Webinar Link]
+    CRM --> EXP[CSV Export / Optional Webhook]
+    EXP -. post-MVP consumer .-> PLATFORM[Existing Education Platform]
 ```
 
-## Bounded context dan pemilik data
+Platform pendidikan dan billing berada di luar runtime wajib MVP. Tidak ada call ke payment system pada journey booking atau attendance.
 
-| Context | System of record | Tanggung jawab |
+## Bounded context dan ownership
+
+| Context | Owner | Tanggung jawab MVP |
 |---|---|---|
-| Sales CRM | CRM | Lead, contact, commercial account, activity, task, webinar, campaign, attribution, opportunity |
-| Voucher | CRM module / dedicated service later | Voucher rule, code/token, assignment, reservation, redemption, expiry, revocation |
-| Identity and Learning | Existing platform | User identity, organization, role, membership, class, product entitlement, access |
-| Order and Subscription | Existing platform or existing order service | SKU/package, quantity, price snapshot, order state, subscription state |
-| Billing and Payment | Existing billing/payment | Invoice, payment attempt, settlement, refund, reconciliation |
-| Integration | Platform capability | Event delivery, retry, deduplication, correlation, contract versioning |
+| Webinar workspace | CRM | Event, session, host, capacity, publish/cancel status |
+| Registration | CRM | Participant, booking, confirmation, cancellation, reschedule |
+| Attendance | CRM | Attended/no-show, source, timestamp, operator |
+| Follow-up | CRM | Owner, status, due date, note, outcome ringan |
+| Notification delivery | CRM | Reminder schedule, attempt, delivery status, last error |
+| Identity and learning | Existing platform | Di luar MVP; tetap memiliki user, organization, entitlement, dan learning access |
+| Billing and payment | Existing billing | Di luar MVP; tetap memiliki invoice, payment, settlement, dan refund |
 
-## Evolusi deployment
-
-Backend CRM menggunakan Go. Untuk platform yang sudah besar, domain CRM dipisahkan secara package dan memiliki database CRM sendiri sejak awal; deployment awal tetap berupa modular monolith agar tim tidak dibebani operasi microservices. Boundary tetap API-first sehingga Voucher atau Integration Service dapat diekstrak nanti.
+## Arsitektur Go MVP
 
 ```text
-Tahap 1: Go crm-api + Go crm-worker + PostgreSQL CRM
-Tahap 2: Voucher module dan webhook delivery dipisahkan bila load/ownership menuntut
-Tahap 3: Event bus terkelola dan reporting read model terpisah
+crm-api      public booking + internal salesperson API
+crm-worker   reminder + scheduled cleanup + optional webhook delivery
+PostgreSQL   webinar, registration, attendance, follow-up, notification job, audit
 ```
 
-`crm-api` menangani request interaktif, public booking, dan webhook receiver. `crm-worker` menangani reminder, expiry, outbox delivery, inbox processing, dan reconciliation. Keduanya dibangun dari repository Go yang sama dan menggunakan business package yang sama.
+Satu repository dan satu database cukup. Boundary package digunakan agar scope tetap terjaga, bukan untuk mempersiapkan microservices secara berlebihan.
 
 ## Pola komunikasi
 
-### Synchronous API
+### Synchronous
 
-Dipakai ketika salesperson atau checkout memerlukan keputusan segera:
+- melihat sesi yang tersedia
+- membuat booking dengan capacity check
+- cancel atau reschedule registration
+- mencatat attendance
+- membuat follow-up task atau note
+- mengambil dashboard dan export
 
-- membuat booking
-- mengecek kapasitas webinar
-- validasi voucher
-- reserve voucher
-- membuat opportunity
-- mengambil status organization atau subscription
+### Asynchronous
 
-### Asynchronous event/webhook
+- mengirim confirmation dan reminder
+- retry notification yang transient failure
+- menandai sesi selesai
+- menerbitkan event webinar hanya jika consumer nyata sudah tersedia
 
-Dipakai untuk perubahan status dan side effect:
-
-- `webinar.attendee.attended`
-- `voucher.issued`
-- `voucher.redeemed`
-- `order.created`
-- `payment.paid`
-- `payment.refunded`
-- `subscription.activated`
-- `school.provisioned`
+Tidak perlu event bus pada MVP. PostgreSQL job table cukup untuk reminder dan retry awal.
 
 ## Prinsip arsitektur
 
-1. **Salesperson-first** - setiap fitur MVP dimulai dari job-to-be-done salesperson.
-2. **Single owner per fact** - satu fakta bisnis memiliki satu pemilik; sistem lain menyimpan referensi atau read model.
-3. **API contract-first** - kontrak versi `v1` dan consumer-driven contract test sebelum implementasi produksi.
-4. **Eventual consistency dengan status yang terlihat** - CRM boleh terlambat menerima status platform, tetapi status sync dan waktu terakhir harus terlihat.
-5. **Idempotent by default** - retry webhook atau user refresh tidak boleh menggandakan voucher, order, atau akun.
-6. **No credential leakage** - CRM tidak menangani password atau secret activation user.
-7. **Configuration over code** - aturan campaign, eligibility, benefit, expiry, dan kapasitas webinar dikonfigurasi.
-8. **Auditability** - perubahan attribution, diskon, status voucher, dan status opportunity selalu memiliki jejak audit.
-9. **Go simplicity** - utamakan standard library atau dependency tipis, SQL eksplisit, dan concurrency yang selalu bounded/cancellable.
-
-## Baseline implementasi Go
-
-```text
-cmd/crm-api       HTTP API dan webhook receiver
-cmd/crm-worker    background job dan integration delivery
-internal/*        package per domain CRM
-PostgreSQL        data CRM, idempotency, outbox, dan inbox
-```
-
-API bersifat stateless. Perubahan domain dan outbox event ditulis dalam transaction yang sama; worker mengirim event dengan retry dan idempotency. Detail lengkap terdapat pada dokumen Arsitektur Implementasi Go dan ADR-002.
+1. **Webinar-first** - fitur harus mendukung journey webinar aktif, bukan roadmap masa depan.
+2. **Salesperson-first** - dashboard mengikuti pekerjaan harian salesperson.
+3. **Public flow is defensive** - capacity, duplicate, rate limit, dan data validation diterapkan pada booking.
+4. **Timezone is explicit** - session disimpan dalam UTC dan selalu ditampilkan bersama timezone yang dipilih.
+5. **Audit attendance changes** - perubahan hadir/no-show memiliki actor, waktu, sumber, dan alasan bila dikoreksi.
+6. **No premature integration** - payment, voucher, dan provisioning tidak masuk runtime MVP.
+7. **Future-compatible data** - simpan source/campaign reference dan stable registration ID tanpa mengimplementasikan benefit.
+8. **Go simplicity** - gunakan standard library atau dependency tipis dan concurrency yang bounded/cancellable.
 
 ## Arsitektur logis
 
 ```mermaid
 flowchart TB
-    subgraph CRM[CRM boundary]
+    subgraph CRM[Go CRM boundary]
       UI[Sales Workspace]
-      LEAD[Lead & Account]
-      WEB[Webinar & Booking]
-      CAM[Campaign]
-      VCH[Voucher]
-      OPP[Opportunity]
-      ACT[Activity & Task]
-      INT[Integration Worker]
+      PUB[Public Booking]
+      WEB[Webinar & Session]
+      REG[Registration]
+      ATT[Attendance]
+      FUP[Follow-up]
+      JOB[Notification Worker]
       AUD[Audit Log]
-      UI --> LEAD
       UI --> WEB
-      UI --> OPP
-      UI --> ACT
-      WEB --> CAM
-      CAM --> VCH
-      OPP --> VCH
-      LEAD --> OPP
-      VCH --> INT
-      OPP --> INT
-      INT --> AUD
+      UI --> ATT
+      UI --> FUP
+      PUB --> REG
+      WEB --> REG
+      REG --> ATT
+      REG --> JOB
+      ATT --> FUP
+      WEB --> AUD
+      REG --> AUD
+      ATT --> AUD
     end
-    subgraph EXISTING[Existing platform boundary]
-      ID[Identity]
-      ORD[Order/Subscription]
-      ENT[Entitlement/Provisioning]
-      ID --> ORD --> ENT
-    end
-    subgraph BILL[Billing boundary]
-      INV[Invoice]
-      PAY[Payment]
-      REF[Refund]
-      INV --> PAY --> REF
-    end
-    INT <--> ID
-    INT <--> ORD
-    INT <--> BILL
+    CRM --> DB[(PostgreSQL CRM)]
+    JOB --> CH[Notification Channel]
+    WEB --> PROVIDER[External Webinar Link]
 ```
 
 ## Kualitas layanan awal
 
-Target awal yang perlu disepakati dengan tim operasi:
-
-- API CRM p95 < 500 ms untuk operasi interaktif tanpa provider eksternal.
-- Validasi voucher p95 < 1 s termasuk call ke order service bila diperlukan.
-- Webhook dikirim ulang dengan exponential backoff dan dead-letter queue setelah batas retry.
-- Tidak ada kehilangan event setelah event tercatat sebagai `outbox`.
-- Semua request lintas sistem memiliki `correlation_id`.
+- Public booking p95 < 750 ms tanpa call provider eksternal.
+- Capacity check dan insert registration terjadi atomik.
+- Duplicate submit tidak menghasilkan registration kedua.
+- Reminder job dapat di-retry dan status kegagalan terlihat.
+- Semua waktu tersimpan dalam UTC dengan source timezone tercatat.
+- Tidak ada data payment, password platform, atau data akademik di CRM.

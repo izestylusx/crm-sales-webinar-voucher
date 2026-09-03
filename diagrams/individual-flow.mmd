@@ -1,20 +1,16 @@
+%% POST-MVP REFERENCE - not part of the active Webinar-first MVP.
 sequenceDiagram
+    title Post-MVP reference: individual voucher and payment conversion
     participant SP as Salesperson
     participant CRM as CRM
-    participant U as Individu
+    participant U as Individual
     participant PLAT as Platform
     participant BILL as Billing
 
-    SP->>CRM: Lihat attendee eligible
+    SP->>CRM: Select eligible attendee
     CRM->>CRM: Issue voucher
-    CRM-->>U: Kirim redeem link
-    U->>PLAT: Masukkan voucher
-    PLAT->>CRM: Validate voucher
-    CRM-->>PLAT: Benefit + reservation window
+    CRM-->>U: Send redeem link
+    U->>PLAT: Enter voucher
     PLAT->>BILL: Create order/payment
-    BILL-->>PLAT: payment.paid
-    PLAT->>CRM: Redeem voucher (idempotent)
-    CRM-->>PLAT: redeemed
-    PLAT->>PLAT: Create/activate identity dan entitlement
-    PLAT-->>U: Activation link
-    CRM->>CRM: Attribution dan commission pending
+    BILL-->>PLAT: Payment status
+    PLAT-->>CRM: Conversion result

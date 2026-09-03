@@ -14,21 +14,24 @@ const NOTES_FILE = path.join(DATA_DIR, 'notes.json');
 const docDefinitions = [
   { slug: 'executive-brief', title: 'Executive Brief', eyebrow: 'Start here', file: 'docs/00-executive-brief.md', section: 'Core docs', status: 'Baseline', description: 'Ringkasan keputusan, tujuan bisnis, dan batas MVP.' },
   { slug: 'architecture-vision', title: 'Architecture Vision', eyebrow: 'North star', file: 'docs/01-architecture-vision.md', section: 'Core docs', status: 'Baseline', description: 'Visi target, system boundary, context map, dan prinsip arsitektur.' },
-  { slug: 'mvp-scope-and-flows', title: 'MVP Scope & Flows', eyebrow: 'Workflows', file: 'docs/02-mvp-scope-and-flows.md', section: 'Core docs', status: 'MVP', description: 'Fitur salesperson, webinar, voucher, individu, dan sekolah/BOS.' },
-  { slug: 'domain-model-and-ownership', title: 'Domain Model & Ownership', eyebrow: 'Data', file: 'docs/03-domain-model-and-ownership.md', section: 'Core docs', status: 'Draft', description: 'Entity, lifecycle, external IDs, dan pemilik data per sistem.' },
-  { slug: 'api-webhook-contracts', title: 'API & Webhook Contracts', eyebrow: 'Integration', file: 'docs/04-api-webhook-contracts.md', section: 'Core docs', status: 'Draft', description: 'Kontrak REST, webhook, event envelope, retry, dan idempotency.' },
-  { slug: 'security-observability-and-operations', title: 'Security & Operations', eyebrow: 'Guardrails', file: 'docs/05-security-observability-and-operations.md', section: 'Core docs', status: 'Draft', description: 'Security baseline, observability, reliability, dan runbook awal.' },
-  { slug: 'delivery-roadmap-and-open-decisions', title: 'Roadmap & Open Decisions', eyebrow: 'Next', file: 'docs/06-delivery-roadmap-and-open-decisions.md', section: 'Core docs', status: 'Next', description: 'Tahapan delivery, definition of done, dan keputusan terbuka.' },
-  { slug: 'adr-system-boundaries', title: 'ADR: System Boundaries', eyebrow: 'Decision record', file: 'docs/adr/ADR-001-system-boundaries.md', section: 'References', status: 'Accepted', description: 'Alasan pemisahan CRM, platform, dan billing.' },
+  { slug: 'mvp-scope-and-flows', title: 'Webinar MVP Scope & Flows', eyebrow: 'Workflows', file: 'docs/02-mvp-scope-and-flows.md', section: 'Core docs', status: 'MVP', description: 'Booking, reminder, attendance, dan follow-up salesperson.' },
+  { slug: 'domain-model-and-ownership', title: 'Domain Model & Ownership', eyebrow: 'Data', file: 'docs/03-domain-model-and-ownership.md', section: 'Core docs', status: 'Baseline', description: 'Entity webinar, capacity invariant, dan data ownership MVP.' },
+  { slug: 'api-webhook-contracts', title: 'API & Event Contracts', eyebrow: 'Contract', file: 'docs/04-api-webhook-contracts.md', section: 'Core docs', status: 'Baseline', description: 'Kontrak booking, attendance, follow-up, dan event opsional.' },
+  { slug: 'security-observability-and-operations', title: 'Security & Operations', eyebrow: 'Guardrails', file: 'docs/05-security-observability-and-operations.md', section: 'Core docs', status: 'Baseline', description: 'Public booking security, observability, reliability, dan runbook.' },
+  { slug: 'delivery-roadmap-and-open-decisions', title: 'Roadmap & Open Decisions', eyebrow: 'Next', file: 'docs/06-delivery-roadmap-and-open-decisions.md', section: 'Core docs', status: 'Next', description: 'Tahapan delivery Webinar-first MVP dan keputusan terbuka.' },
+  { slug: 'go-implementation-architecture', title: 'Go Implementation Architecture', eyebrow: 'Implementation', file: 'docs/07-go-implementation-architecture.md', section: 'Core docs', status: 'Accepted', description: 'Struktur Go untuk API, worker, PostgreSQL jobs, dan testing webinar.' },
+  { slug: 'adr-system-boundaries', title: 'ADR: System Boundaries', eyebrow: 'Decision record', file: 'docs/adr/ADR-001-system-boundaries.md', section: 'References', status: 'Post-MVP guardrail', description: 'Boundary platform dan billing untuk fase setelah webinar MVP.' },
+  { slug: 'adr-go-backend-architecture', title: 'ADR: Go Backend Architecture', eyebrow: 'Decision record', file: 'docs/adr/ADR-002-go-backend-architecture.md', section: 'References', status: 'Accepted', description: 'Keputusan modular monolith Go untuk Webinar-first MVP.' },
+  { slug: 'adr-webinar-first-mvp', title: 'ADR: Webinar-first MVP', eyebrow: 'Scope decision', file: 'docs/adr/ADR-003-webinar-first-mvp.md', section: 'References', status: 'Accepted', description: 'Keputusan menunda voucher, payment, BOS, dan commission.' },
 ];
 
 const downloads = [
   { id: 'docx', label: 'Download DOCX handoff', file: 'CRM-Architecture-Vision-MVP.docx', type: 'document' },
+  { id: 'webinar-openapi', label: 'Webinar MVP OpenAPI YAML', file: 'contracts/webinar-openapi.yaml', type: 'contract' },
   { id: 'event-envelope', label: 'Event envelope JSON', file: 'contracts/event-envelope.json', type: 'contract' },
-  { id: 'webhook-openapi', label: 'Webhook OpenAPI YAML', file: 'contracts/webhook-openapi.yaml', type: 'contract' },
   { id: 'system-context', label: 'System context diagram', file: 'diagrams/system-context.mmd', type: 'diagram' },
-  { id: 'individual-flow', label: 'Individual conversion diagram', file: 'diagrams/individual-flow.mmd', type: 'diagram' },
-  { id: 'school-flow', label: 'School procurement diagram', file: 'diagrams/school-flow.mmd', type: 'diagram' },
+  { id: 'go-module-architecture', label: 'Go module architecture diagram', file: 'diagrams/go-module-architecture.mmd', type: 'diagram' },
+  { id: 'webinar-flow', label: 'Webinar MVP journey diagram', file: 'diagrams/webinar-flow.mmd', type: 'diagram' },
 ];
 
 function json(res, status, payload) {

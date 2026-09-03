@@ -1,122 +1,130 @@
-# API dan Webhook Contracts
+# API dan Event Contracts
+
+## Scope kontrak MVP
+
+Kontrak aktif hanya mencakup webinar, booking, attendance, notification status, follow-up, dan export. Endpoint voucher, payment, subscription, dan school provisioning tidak menjadi bagian API MVP.
 
 ## Konvensi umum
 
 - Base path: `/v1`.
 - Format: JSON UTF-8.
-- Auth service-to-service: OAuth2 client credentials atau mTLS; API key hanya untuk provider yang belum mendukung OAuth.
-- Semua mutating request menerima `Idempotency-Key`.
+- Timestamp: ISO-8601 UTC; timezone session dikirim sebagai field terpisah.
+- Mutating request internal menerima `Idempotency-Key` bila berisiko diulang.
 - Semua response menyertakan `request_id`.
-- Pagination untuk list menggunakan cursor.
-- Timestamp memakai ISO-8601 UTC.
+- List menggunakan cursor pagination.
+- Public token bersifat opaque dan tidak memakai ID database berurutan.
 
-## CRM API untuk frontend internal
+## Internal salesperson API
 
 ```text
 GET    /v1/me/dashboard
-GET    /v1/leads?owner_id=&stage=&cursor=
-POST   /v1/leads
-PATCH  /v1/leads/{lead_id}
-POST   /v1/leads/{lead_id}/convert
-GET    /v1/webinars?status=&from=&to=
-POST   /v1/webinars/{webinar_id}/sessions
-POST   /v1/webinar-sessions/{session_id}/registrations
+GET    /v1/webinar-events?status=&cursor=
+POST   /v1/webinar-events
+PATCH  /v1/webinar-events/{event_id}
+GET    /v1/webinar-sessions?from=&to=&owner_id=&status=&cursor=
+POST   /v1/webinar-events/{event_id}/sessions
+PATCH  /v1/webinar-sessions/{session_id}
+POST   /v1/webinar-sessions/{session_id}/publish
+POST   /v1/webinar-sessions/{session_id}/cancel
+GET    /v1/webinar-sessions/{session_id}/registrations?attendance=&follow_up=&cursor=
 POST   /v1/webinar-registrations/{registration_id}/attendance
-POST   /v1/campaigns
-POST   /v1/campaigns/{campaign_id}/vouchers/issue
-GET    /v1/vouchers?status=&campaign_id=&owner_id=
-POST   /v1/vouchers/validate
-POST   /v1/vouchers/{voucher_id}/reserve
-POST   /v1/vouchers/{voucher_id}/redeem
-POST   /v1/opportunities
-PATCH  /v1/opportunities/{opportunity_id}
-GET    /v1/integrations/deliveries?status=&event_type=
-POST   /v1/integrations/deliveries/{delivery_id}/retry
+POST   /v1/webinar-sessions/{session_id}/attendance-imports
+POST   /v1/webinar-registrations/{registration_id}/follow-ups
+PATCH  /v1/follow-ups/{follow_up_id}
+GET    /v1/webinar-sessions/{session_id}/export.csv
 ```
 
-## Voucher validation
+## Public booking API
 
-Request:
+```text
+GET    /v1/public/webinars/{public_token}
+POST   /v1/public/webinars/{public_token}/registrations
+GET    /v1/public/registrations/{management_token}
+POST   /v1/public/registrations/{management_token}/cancel
+POST   /v1/public/registrations/{management_token}/reschedule
+```
+
+### Booking request
 
 ```json
 {
-  "voucher_code": "EDU-XXXX-XXXX",
-  "buyer_type": "individual",
-  "product_id": "ai-learning-basic",
-  "quantity": 1,
-  "platform_user_id": "usr_123",
-  "platform_organization_id": null
+  "session_id": "wbs_123",
+  "full_name": "Siti Rahma",
+  "email": "siti@example.com",
+  "phone": "+6281234567890",
+  "client_type": "teacher",
+  "salesperson_reference": "sp_123",
+  "source": "salesperson-link",
+  "consent": true
 }
 ```
 
-Response:
+### Booking response
 
 ```json
 {
-  "valid": true,
-  "voucher_id": "vch_123",
-  "campaign_id": "cmp_123",
-  "benefit": {
-    "type": "percentage_discount",
-    "value": 20,
-    "currency": "IDR"
+  "registration_id": "wbr_123",
+  "status": "confirmed",
+  "session": {
+    "starts_at": "2026-09-10T03:00:00Z",
+    "timezone": "Asia/Jakarta",
+    "display_time": "10 September 2026, 10.00 WIB"
   },
-  "reservation_required": true,
-  "expires_at": "2026-09-01T10:15:00Z",
-  "restrictions": []
+  "notification_status": "pending",
+  "management_url": "https://crm.example.com/r/opaque-token"
 }
 ```
 
-Invalid voucher response menggunakan error code stabil, misalnya `VOUCHER_EXPIRED`, `VOUCHER_ALREADY_REDEEMED`, `VOUCHER_PRODUCT_NOT_ELIGIBLE`, atau `VOUCHER_ACCOUNT_MISMATCH`.
-
-## Webhook receiver
-
-CRM menyediakan endpoint private untuk event dari platform/billing:
+Error code stabil:
 
 ```text
-POST /v1/webhooks/platform
-POST /v1/webhooks/billing
+SESSION_NOT_PUBLISHED
+SESSION_FULL
+DUPLICATE_REGISTRATION
+SESSION_CANCELLED
+INVALID_MANAGEMENT_TOKEN
+RESCHEDULE_TARGET_FULL
+VALIDATION_ERROR
+RATE_LIMITED
 ```
 
-Header minimum:
+## Attendance import
 
-```text
-X-Event-Id: evt_123
-X-Event-Type: payment.paid
-X-Event-Version: 1
-X-Signature: sha256=...
-X-Correlation-Id: cor_123
-```
+Upload CSV dilakukan dua tahap:
 
-Receiver harus:
+1. `preview`: parsing, column mapping, participant matching, serta error per row.
+2. `commit`: hanya row valid yang diterapkan, dengan idempotency key per import batch.
 
-1. Memverifikasi signature dan timestamp tolerance.
-2. Menyimpan event ID sebelum memproses side effect.
-3. Mengembalikan HTTP 2xx setelah event aman di-queue, bukan setelah seluruh workflow selesai.
-4. Menjalankan consumer idempotent.
-5. Mengirim event bermasalah ke dead-letter queue setelah retry budget habis.
+Koreksi manual setelah import menyimpan nilai lama, nilai baru, actor, timestamp, dan reason.
 
-## Event penting dan consumer
+## Notification job
 
-| Event | Producer | Consumer | Side effect |
-|---|---|---|---|
-| `webinar.attendee.attended` | CRM/webinar adapter | Voucher | Evaluasi eligibility dan issue voucher |
-| `voucher.issued` | CRM | Notification, reporting | Kirim redeem link dan update funnel |
-| `voucher.redeemed` | CRM/platform | CRM, commission | Catat conversion candidate |
-| `order.created` | Platform/order | CRM | Link order ke contact/opportunity |
-| `payment.paid` | Billing | Platform, CRM | Redeem final, activate, mark conversion |
-| `payment.failed` | Billing | CRM | Follow-up task dan status pending |
-| `payment.refunded` | Billing | CRM, commission | Reversal/hold commission sesuai policy |
-| `subscription.activated` | Platform | CRM | Update customer stage dan onboarding |
-| `school.provisioned` | Platform | CRM | Link organization dan mark provisioning complete |
+Confirmation dan reminder adalah pekerjaan asynchronous internal. API tidak menunggu provider notification selesai; response booking mengembalikan `notification_status: pending`.
 
-## Event ordering dan consistency
+Retry hanya untuk transient failure. Alamat invalid atau opt-out menjadi permanent failure dan tidak dikirim berulang.
 
-Event dapat datang terlambat atau out of order. Consumer memeriksa `occurred_at`, entity version, dan state transition yang valid. Jangan mengandalkan urutan network delivery sebagai sumber kebenaran.
+## Event/webhook opsional
+
+Jika ada consumer internal yang sudah siap, CRM dapat menerbitkan:
+
+| Event | Trigger | Data minimum |
+|---|---|---|
+| `webinar.registration.created` | Booking berhasil | registration, session, salesperson, source |
+| `webinar.registration.cancelled` | Participant membatalkan | registration, session, reason |
+| `webinar.attendee.attended` | Attendance dicatat | registration, participant, session, recorded_at |
+| `webinar.attendee.no_show` | No-show dicatat | registration, participant, session |
+| `webinar.follow_up.completed` | Follow-up selesai | registration, salesperson, outcome |
+
+Event bersifat **optional extension**, bukan dependency untuk menyelesaikan MVP. Jangan membangun generic event platform bila belum ada consumer.
+
+Jika webhook diaktifkan, envelope membawa `event_id`, `event_type`, `event_version`, `occurred_at`, `producer`, `correlation_id`, `subject`, dan `data`. Delivery menggunakan idempotency, signature, timeout, retry terbatas, dan audit status.
 
 ## Contract testing
 
-- OpenAPI validation pada CI.
-- Consumer-driven contract untuk CRM <-> platform dan CRM <-> billing.
-- Fixture event untuk duplicate delivery, delayed event, refund, zero-value order, dan partial failure.
+- OpenAPI validation untuk public dan internal webinar endpoint.
+- Test concurrent booking pada session dengan satu kursi tersisa.
+- Test duplicate submit dan retry dengan idempotency key.
+- Test cancel/reschedule terhadap capacity dan reminder.
+- Test CSV preview/commit termasuk row invalid dan import ulang.
+- Jika webhook diaktifkan, test signature, duplicate delivery, timeout, dan permanent failure.
 

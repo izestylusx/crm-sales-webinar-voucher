@@ -62,27 +62,27 @@ function renderHome() {
     </a>`).join('');
   page.innerHTML = `
     <div class="hero">
-      <div class="eyebrow">Sales enablement workspace</div>
-      <h1>Satu ruang untuk menyelaraskan CRM, webinar, voucher, dan platform.</h1>
-      <p>Dokumentasi hidup untuk tim product, engineering, sales operations, dan finance. Baca rancangan, tandai bagian yang perlu diperbaiki, lalu lanjutkan diskusi di halaman yang sama.</p>
-      <div class="hero-meta"><span><b>Last refreshed</b> ${formatDate(new Date().toISOString())}</span><span><b>Primary user</b> Salesperson</span><span><b>Mode</b> MVP baseline</span></div>
+      <div class="eyebrow">Sales webinar workspace</div>
+      <h1>Satu ruang untuk merancang Webinar-first MVP.</h1>
+      <p>Dokumentasi hidup untuk tim product, engineering, dan sales operations. Scope aktif berhenti pada booking, reminder, attendance, dan follow-up; voucher serta payment dipindahkan ke post-MVP.</p>
+      <div class="hero-meta"><span><b>Last refreshed</b> ${formatDate(new Date().toISOString())}</span><span><b>Primary user</b> Salesperson</span><span><b>Mode</b> Webinar-first MVP</span></div>
     </div>
     <div class="dashboard-grid">
       <section class="panel panel-pad">
-        <div class="panel-kicker">System view</div>
-        <h2>Commercial layer, clearly bounded.</h2>
-        <p class="panel-copy">CRM mengorkestrasi aktivitas sales. Platform dan billing tetap menjadi pemilik identity, entitlement, invoice, dan payment.</p>
+        <div class="panel-kicker">Active system view</div>
+        <h2>Webinar journey, tightly scoped.</h2>
+        <p class="panel-copy">CRM mengelola sesi, public booking, reminder, attendance, dan follow-up. Platform pendidikan dan billing tidak menjadi dependency runtime MVP.</p>
         <div class="system-map">
-          <div class="map-node primary"><small>Primary user</small><strong>Salesperson</strong></div><div class="map-arrow"></div><div class="map-node accent"><small>System of work</small><strong>CRM</strong></div>
-          <div class="map-node teal"><small>Fulfillment</small><strong>Education platform</strong></div><div class="map-arrow"></div><div class="map-node"><small>Financial truth</small><strong>Billing / payment</strong></div>
+          <div class="map-node primary"><small>Primary user</small><strong>Salesperson</strong></div><div class="map-arrow"></div><div class="map-node accent"><small>System of work</small><strong>Webinar CRM</strong></div>
+          <div class="map-node teal"><small>Public flow</small><strong>Booking</strong></div><div class="map-arrow"></div><div class="map-node"><small>Outcome</small><strong>Follow-up</strong></div>
         </div>
-        <div class="stat-row"><div class="stat"><strong>${state.docs.length}</strong><span>living documents</span></div><div class="stat"><strong>${state.docs.reduce((n, doc) => n + doc.noteCount, 0)}</strong><span>open notes</span></div><div class="stat"><strong>2</strong><span>conversion funnels</span></div></div>
+        <div class="stat-row"><div class="stat"><strong>${state.docs.length}</strong><span>living documents</span></div><div class="stat"><strong>${state.docs.reduce((n, doc) => n + doc.noteCount, 0)}</strong><span>open notes</span></div><div class="stat"><strong>1</strong><span>active MVP journey</span></div></div>
       </section>
       <aside class="panel panel-pad">
         <div class="panel-kicker">Review path</div>
         <h2>Mulai dari sini.</h2>
-        <p class="panel-copy">Baca keputusan besar dulu, baru masuk ke flow dan contract.</p>
-        <div class="progress-list"><div class="progress-item"><span class="progress-number">01</span><div><div class="progress-title">Executive Brief</div><div class="progress-sub">Apa yang sedang kita bangun?</div></div><span class="progress-status">start</span></div><div class="progress-item"><span class="progress-number">02</span><div><div class="progress-title">MVP Scope & Flows</div><div class="progress-sub">Bagaimana individu dan sekolah berbeda?</div></div><span class="progress-status">flow</span></div><div class="progress-item"><span class="progress-number">03</span><div><div class="progress-title">API & Webhooks</div><div class="progress-sub">Bagaimana sistem saling berbicara?</div></div><span class="progress-status">build</span></div></div>
+        <p class="panel-copy">Kunci scope dulu, lalu review flow dan kontrak booking.</p>
+        <div class="progress-list"><div class="progress-item"><span class="progress-number">01</span><div><div class="progress-title">Executive Brief</div><div class="progress-sub">Apa yang masuk dan dipending?</div></div><span class="progress-status">start</span></div><div class="progress-item"><span class="progress-number">02</span><div><div class="progress-title">Webinar MVP Flows</div><div class="progress-sub">Bagaimana booking sampai follow-up?</div></div><span class="progress-status">flow</span></div><div class="progress-item"><span class="progress-number">03</span><div><div class="progress-title">API & Events</div><div class="progress-sub">Apa kontrak minimum yang dibangun?</div></div><span class="progress-status">build</span></div></div>
       </aside>
     </div>
     <div class="section-heading"><div class="eyebrow">Document shelf</div><h2>Core docs</h2></div>
@@ -95,7 +95,7 @@ function renderSearch(query) {
   if (!normalized) return renderHome();
   const matches = state.docs.filter((doc) => doc.searchText.includes(normalized));
   $('#crumb').textContent = `Workspace / Search / ${query}`;
-  page.innerHTML = `<div class="hero"><div class="eyebrow">Search results</div><h1>Menemukan “${escapeHtml(query)}”</h1><p>${matches.length} dokumen relevan dalam workspace.</p><div class="search-results">${matches.length ? matches.map((doc) => `<a class="search-result" href="#/doc/${doc.slug}"><small>${escapeHtml(doc.eyebrow)} · ${escapeHtml(doc.status)}</small><h3>${escapeHtml(doc.title)}</h3><p>${escapeHtml(doc.excerpt)}...</p></a>`).join('') : '<div class="panel panel-pad"><p class="panel-copy">Belum ada dokumen yang cocok. Coba kata lain seperti <code>voucher</code>, <code>school</code>, atau <code>webhook</code>.</p></div>'}</div></div>`;
+  page.innerHTML = `<div class="hero"><div class="eyebrow">Search results</div><h1>Menemukan “${escapeHtml(query)}”</h1><p>${matches.length} dokumen relevan dalam workspace.</p><div class="search-results">${matches.length ? matches.map((doc) => `<a class="search-result" href="#/doc/${doc.slug}"><small>${escapeHtml(doc.eyebrow)} · ${escapeHtml(doc.status)}</small><h3>${escapeHtml(doc.title)}</h3><p>${escapeHtml(doc.excerpt)}...</p></a>`).join('') : '<div class="panel panel-pad"><p class="panel-copy">Belum ada dokumen yang cocok. Coba kata lain seperti <code>booking</code>, <code>attendance</code>, atau <code>reminder</code>.</p></div>'}</div></div>`;
   updateActiveNav('');
 }
 

@@ -2,56 +2,57 @@
 
 ## Konteks
 
-Platform utama sudah besar dan melayani murid, guru, orang tua, serta institusi sekolah. Tim ingin memiliki CRM terpisah agar pekerjaan salesperson tidak bercampur dengan domain pembelajaran, identitas, subscription, dan payment.
+Platform AI pendidikan sudah besar dan melayani murid, guru, orang tua, serta sekolah. Tim internal membutuhkan alat terpisah bagi salesperson untuk mengatur presentasi produk kepada calon client melalui webinar.
 
-Pengguna utama CRM adalah salesperson. Admin sales, finance, marketing, dan operator integrasi menjadi pengguna sekunder.
+Untuk MVP, kebutuhan paling mendesak bukan voucher atau payment. Fokusnya adalah membuat proses webinar dapat dijadwalkan, dibagikan, diikuti, dan ditindaklanjuti dari satu workspace.
 
-## Keputusan inti
+## Keputusan scope
 
-1. CRM menjadi system of record untuk lead, account komersial, aktivitas sales, webinar, campaign, voucher attribution, opportunity, dan komisi.
-2. Platform menjadi system of record untuk login, user identity, organisasi sekolah, role, membership, subscription entitlement, dan akses pembelajaran.
-3. Payment/Billing tetap menjadi system of record untuk invoice, payment attempt, settlement, refund, dan status finansial.
-4. Tidak ada shared database lintas sistem. Integrasi memakai API dan event/webhook dengan external IDs.
-5. Funnel individu dan sekolah berbeda setelah voucher diterbitkan.
-6. Voucher individu dapat mengantarkan user ke checkout langsung. Voucher sekolah menjadi benefit atau referensi pada opportunity/quotation, bukan jalur checkout individu.
-7. Akses platform diaktifkan oleh platform setelah status order/subscription valid; CRM tidak pernah mengaktifkan akses secara langsung.
-8. Backend CRM menggunakan Go sebagai modular monolith pada MVP, dengan process API dan worker terpisah serta satu PostgreSQL database CRM.
+1. Pengguna utama adalah salesperson; sales manager dan admin menjadi pengguna sekunder.
+2. MVP berhenti pada follow-up setelah attendance dicatat.
+3. Voucher management, payment/billing, subscription activation, opportunity sekolah/BOS, dan commission management dipindahkan ke post-MVP.
+4. Tidak ada integrasi payment atau provisioning platform yang diwajibkan pada MVP.
+5. Integrasi awal cukup berupa export CSV atau webhook webinar opsional jika memang dibutuhkan consumer internal.
+6. Backend menggunakan Go modular monolith dengan PostgreSQL, `crm-api`, dan `crm-worker`.
 
 ## Nilai yang ingin dicapai
 
-- Salesperson melihat pekerjaan harian dari satu workspace.
-- Pendaftaran webinar, attendance, follow-up, dan voucher dapat dilacak end-to-end.
-- Conversion dapat diatribusikan ke salesperson dan campaign secara dapat diaudit.
-- Pemisahan sistem dapat dilakukan tanpa migrasi besar atau perubahan langsung pada payment gateway.
-- Jalur procurement sekolah yang memakai dana BOS tidak dipaksa mengikuti checkout self-service.
+- Salesperson dapat membuat dan membagikan sesi webinar tanpa proses manual yang tersebar.
+- Calon client dapat memilih sesi yang tersedia dan menerima konfirmasi dengan jelas.
+- Kapasitas, duplicate registration, pembatalan, dan reschedule ditangani konsisten.
+- Reminder dan attendance dapat dipantau dari satu tempat.
+- Setelah webinar, salesperson langsung melihat peserta yang perlu di-follow-up.
+- Data webinar tetap siap menjadi input voucher pada fase berikutnya tanpa membangun voucher sekarang.
 
-## Batas MVP
+## Termasuk dalam MVP
 
-### Termasuk
+- Login internal dan role sederhana.
+- Webinar event dan session management.
+- Public booking page seperti Calendly untuk memilih sesi.
+- Capacity check dan duplicate registration policy.
+- Confirmation, cancellation, dan reschedule.
+- Reminder terjadwal.
+- Attendance manual dan import CSV.
+- Participant/contact record ringan.
+- Follow-up status, task, dan note untuk salesperson.
+- Dashboard serta export peserta.
+- Audit log untuk perubahan penting.
 
-- Login dan RBAC untuk pengguna internal CRM.
-- Lead dan contact management ringan.
-- Kalender webinar grup dengan kapasitas, booking, reminder, dan attendance.
-- Campaign dan penerbitan voucher.
-- Validasi, reservation, redemption, expiry, dan revocation voucher.
-- Integrasi order, payment status, subscription activation, dan provisioning.
-- Opportunity sekolah, proposal/quotation reference, status procurement, dan invoice reference.
-- Dashboard salesperson dan audit log.
+## Tidak termasuk dalam MVP
 
-### Tidak termasuk pada MVP
+- Voucher issuance, validation, reservation, redemption, expiry, atau revocation.
+- Checkout, payment webhook, invoice, refund, atau settlement.
+- Pembuatan akun dan subscription pada platform pendidikan.
+- Opportunity pipeline sekolah dan proses dana BOS.
+- Commission calculation.
+- Webinar provider integration yang kompleks jika link eksternal sudah cukup.
+- Message broker, service mesh, atau microservices penuh.
 
-- Replikasi seluruh data pembelajaran ke CRM.
-- Payment gateway baru.
-- CRM omnichannel lengkap seperti marketing automation enterprise.
-- Perhitungan pajak/akuntansi penuh.
-- Self-service procurement sekolah tanpa approval.
-- Microservice decomposition yang memaksa operational overhead sejak hari pertama.
-- Message broker, service mesh, atau orchestration platform khusus sebelum volume dan kebutuhan operasional terbukti.
+## Success criteria
 
-## Success criteria MVP
-
-- Salesperson dapat membuat atau membuka lead, mendaftarkan peserta webinar, melihat attendance, dan melakukan follow-up tanpa membuka database platform.
-- Peserta yang eligible memperoleh voucher satu kali dengan status lifecycle yang konsisten.
-- Pembayaran individu yang berhasil menghasilkan redemption dan aktivasi akun yang idempotent.
-- Opportunity sekolah dapat bergerak dari lead sampai `payment_pending` tanpa membuat akun murid/guru prematur.
-- Semua event antar-sistem dapat dilacak dengan correlation ID dan event ID.
+- Salesperson dapat membuat, mempublikasikan, dan membagikan webinar.
+- Calon client dapat booking tanpa membuat registration ganda atau melewati kapasitas.
+- Confirmation dan reminder terkirim dengan status delivery yang terlihat.
+- Attendance dapat dicatat atau diimpor dan perubahan memiliki audit trail.
+- Salesperson dapat menyaring `attended`, `no_show`, dan peserta yang belum di-follow-up.
+- Alur lengkap dari publikasi sesi sampai follow-up lulus pengujian end-to-end.

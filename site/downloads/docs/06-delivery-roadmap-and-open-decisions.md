@@ -1,75 +1,84 @@
 # Roadmap Delivery dan Open Decisions
 
-## Tahap 0 - Alignment dan contract discovery
+## Tahap 0 - Scope dan fondasi
 
-- Inventaris API/event existing platform dan billing.
-- Tetapkan owner data, glossary, ID strategy, dan status vocabulary.
-- Tetapkan Go module, layout `cmd`/`internal`, migration workflow, serta CI baseline.
-- Pilih provider webinar awal.
-- Kunci policy voucher dan commission.
-- Buat OpenAPI/event fixtures serta threat review.
+- Kunci Webinar-first MVP sebagai baseline aktif.
+- Tetapkan field wajib booking, duplicate policy, capacity policy, dan timezone behavior.
+- Pilih strategi auth internal dan role awal.
+- Tetapkan Go module, layout `cmd`/`internal`, migration workflow, dan CI.
+- Pilih kanal confirmation/reminder awal.
+- Buat OpenAPI serta acceptance test fixtures.
 
-## Tahap 1 - Sales workspace dan webinar
+## Tahap 1 - Webinar dan session management
 
-- Bangun binary `crm-api` dan `crm-worker` dengan PostgreSQL connection, health check, logging, dan graceful shutdown.
+- `crm-api`, PostgreSQL connection, migration, health check, logging, dan graceful shutdown.
 - Auth/RBAC internal.
-- Lead/contact/account dan activity timeline.
-- Webinar event/session, public booking, capacity, confirmation, reminder.
-- Attendance manual/CSV sebagai baseline.
+- Webinar event dan session CRUD.
+- Publish/cancel session dan public booking token.
+- Dashboard webinar salesperson.
 
-## Tahap 2 - Campaign dan voucher
+## Tahap 2 - Public booking
 
-- Campaign configuration.
-- Issue voucher dari attendee eligible.
-- Validation/reserve/redeem/expire/revoke.
-- Notification redeem link.
-- Dashboard voucher dan audit log.
+- Public session page dan form registration.
+- Atomic capacity check.
+- Duplicate registration policy.
+- Confirmation state dan management link.
+- Cancellation dan reschedule.
+- Rate limit, validation, dan audit.
 
-## Tahap 3 - Individual conversion
+## Tahap 3 - Reminder, attendance, dan follow-up
 
-- Redeem page di platform.
-- Order dan payment handoff.
-- Payment webhook, zero-value order, idempotent activation.
-- Buyer/beneficiary mapping.
-- Commission pending/eligible.
+- `crm-worker` dan notification job.
+- Confirmation/reminder delivery serta retry.
+- Attendance manual dan CSV preview/commit.
+- Filter attended/no-show.
+- Follow-up task, note, due date, owner, dan outcome.
+- Export CSV.
 
-## Tahap 4 - School opportunity dan BOS
+## Tahap 4 - Hardening MVP
 
-- School account dan opportunity stages.
-- Proposal/quotation reference.
-- Procurement/BOS fields dan approval.
-- Invoice handoff dan payment status.
-- Provisioning organization setelah policy terpenuhi.
+- Concurrency test untuk capacity.
+- Load test public booking.
+- Race test worker dan migration test.
+- Runbook serta operational dashboard.
+- Retention/deletion policy.
+- End-to-end test dari publish sampai follow-up.
 
-## Tahap 5 - Hardening
+## Post-MVP, belum dijadwalkan
 
-- Contract testing di CI.
-- Static analysis, race test worker, migration test, dan capacity test untuk public booking/voucher validation.
-- Reconciliation dan operational console.
-- Provider webinar callback otomatis.
-- Reporting read model dan data warehouse export.
-- Extraction review: apakah voucher/integration sudah layak menjadi service terpisah.
+1. Webinar provider callback otomatis.
+2. Outbound webhook/event ke sistem internal.
+3. Voucher management.
+4. Individual checkout dan payment integration.
+5. Subscription activation pada platform pendidikan.
+6. School opportunity, proposal, procurement, dan dana BOS.
+7. Commission management.
 
-## Open decisions
+Urutan post-MVP harus ditentukan kembali berdasarkan hasil penggunaan webinar, bukan dianggap otomatis.
 
-1. Provider webinar pertama: Zoom, Google Meet, atau provider internal?
-2. Attendance source: manual, CSV, API callback, atau kombinasi?
-3. Voucher diberikan saat register atau hanya setelah attended?
-4. Apakah satu attendee boleh menerima beberapa voucher dari campaign berbeda?
-5. Apakah voucher individu boleh dipakai untuk buyer dan beneficiary yang berbeda?
-6. Apakah sekolah perlu multi-stage approval di CRM atau cukup external status?
-7. Kapan komisi menjadi eligible: `payment.paid`, setelah masa refund, atau setelah onboarding selesai?
-8. Apakah CRM membuat lead dari public booking secara langsung atau melalui anti-duplication queue?
-9. Provider billing existing menyediakan webhook yang signed dan event versioned?
-10. Apakah platform sudah memiliki order/subscription API yang dapat dipakai tanpa perubahan besar?
-11. Standar internal Go apa yang sudah dimiliki tim: router, PostgreSQL driver/query tool, logger, telemetry, dan migration tool?
+## Open decisions MVP
+
+1. Apakah satu public page menampilkan beberapa session atau satu link per session?
+2. Field booking mana yang wajib: email, telepon, institusi, role, atau kombinasi?
+3. Duplicate ditentukan berdasarkan email, telepon, atau keduanya?
+4. Apakah salesperson dapat mengubah capacity setelah session published?
+5. Kanal awal: email saja, WhatsApp, atau keduanya?
+6. Jadwal reminder default dan batas resend manual?
+7. Attendance MVP: manual saja atau manual + CSV?
+8. Apakah calon client boleh reschedule sendiri sampai batas waktu tertentu?
+9. Siapa yang dapat melihat seluruh participant lintas salesperson?
+10. Berapa lama data participant yang tidak conversion disimpan?
+11. Apakah existing SSO dapat dipakai tanpa perubahan besar?
+12. Standar internal Go apa yang sudah tersedia untuk router, PostgreSQL, logging, telemetry, dan migration?
 
 ## Definition of done MVP
 
-- Alur individu dan sekolah berhasil diuji end-to-end di staging.
-- Duplicate webhook tidak menggandakan state atau side effect.
-- Access activation tidak terjadi sebelum payment/order policy terpenuhi.
-- Salesperson dapat menelusuri timeline dari booking sampai conversion.
-- Audit log tersedia untuk perubahan sensitif.
-- Dashboard operasi menunjukkan delivery failure dan dead-letter item.
-- Rollback/replay runbook telah diuji.
+- Salesperson dapat membuat, publish, dan membagikan session.
+- Public booking aman dari overbooking dan duplicate submit.
+- Participant dapat cancel/reschedule sesuai policy.
+- Confirmation dan reminder memiliki delivery status serta retry.
+- Attendance manual/CSV konsisten dan dapat dikoreksi dengan audit.
+- Salesperson dapat menyelesaikan follow-up dan export peserta.
+- Role/team scope bekerja sesuai acceptance test.
+- Dashboard operasi menunjukkan booking error dan notification backlog.
+- Tidak ada runtime dependency pada voucher, payment, billing, subscription, atau provisioning.
